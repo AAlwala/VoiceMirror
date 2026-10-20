@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoiceMirror · English Fluency Coach</title>
+<style>
+  :root {
+    --bg: #f4f7fb;
+    --surface: #ffffff;
+    --surface-2: #eef3fa;
+    --line: #dde5f0;
+    --text: #1d2939;
+    --muted: #5a6b82;
+    --primary: #3f6fc6;
+    --primary-dark: #2f5aa8;
+    --primary-soft: #e3ecfa;
+    --ok: #1f8a5b;
+    --ok-soft: #dff3ea;
+    --warn: #b06d0b;
+    --warn-soft: #fbefd9;
+    --bad: #c2413b;
+    --bad-soft: #fbe3e1;
+    --add: #6a4fc2;
+    --add-soft: #ece6fb;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(20, 40, 80, .05), 0 4px 16px rgba(20, 40, 80, .06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px; line-height: 1.55; color: var(--text); background: var(--bg);
+  }
+  h1, h2, h3 { line-height: 1.25; margin: 0 0 .5em; }
+  h1 { font-size: 1.7rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.08rem; }
+  p { margin: 0 0 .8em; }
+  button, select, textarea, input { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+
+  /* ---------- Layout ---------- */
+  .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  .sidebar {
+    background: var(--surface); border-right: 1px solid var(--line);
+    padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; margin: 0 8px 24px; }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 12px; background: var(--primary);
+    display: grid; place-items: center; color: #fff; flex: none;
+  }
+  .brand-name { font-weight: 700; font-size: 1.1rem; }
+  .brand-sub { font-size: .8rem; color: var(--muted); }
+  .nav { display: flex; flex-direction: column; gap: 4px; }
+  .nav button {
+    display: flex; align-items: center; gap: 10px; text-align: left;
+    background: none; border: 0; border-radius: 12px; padding: 11px 14px;
+    cursor: pointer; color: var(--muted); font-weight: 500;
+  }
+  .nav button:hover { background: var(--surface-2); color: var(--text); }
+  .nav button.active { background: var(--primary-soft); color: var(--primary-dark); font-weight: 650; }
+  .nav svg { width: 20px; height: 20px; flex: none; }
+  .main { padding: 32px clamp(16px, 4vw, 48px) 64px; max-width: 1100px; width: 100%; }
+  .view-head { margin-bottom: 20px; }
+  .view-head p { color: var(--muted); max-width: 65ch; }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      position: sticky; top: 0; z-index: 20; height: auto; padding: 10px 12px;
+      border-right: 0; border-bottom: 1px solid var(--line);
+    }
+    .brand { margin: 0 4px 8px; }
+    .brand-mark { width: 30px; height: 30px; border-radius: 9px; }
+    .nav { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; scrollbar-width: none; }
+    .nav button { white-space: nowrap; padding: 8px 12px; font-size: .92rem; }
+    .nav svg { display: none; }
+    .main { padding-top: 20px; }
+  }
+
+  /* ---------- Building blocks ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 22px; box-shadow: var(--shadow); margin-bottom: 18px;
+  }
+  .card.soft { background: var(--surface-2); box-shadow: none; }
+  .grid { display: grid; gap: 16px; }
+  .grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .spacer { flex: 1; }
+  .muted { color: var(--muted); }
+  .small { font-size: .88rem; }
+  .center { text-align: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 48px; padding: 10px 20px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--surface); cursor: pointer; font-weight: 600; transition: background .15s, border-color .15s;
+  }
+  .btn:hover:not(:disabled) { background: var(--surface-2); }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn.danger { color: var(--bad); border-color: #efc4c1; }
+  .btn.danger.solid { background: var(--bad); color: #fff; border-color: var(--bad); }
+  .btn.small { min-height: 38px; padding: 6px 14px; font-size: .9rem; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn svg { width: 18px; height: 18px; }
+
+  select, textarea, input[type=text] {
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface);
+    min-height: 46px;
+  }
+  textarea { width: 100%; min-height: 110px; resize: vertical; }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; color: var(--muted); font-weight: 500; }
+  :focus-visible { outline: 3px solid #9dbcf0; outline-offset: 2px; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--line); font-size: .85rem; color: var(--muted);
+  }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+  .chip.info { background: var(--primary-soft); color: var(--primary-dark); border-color: transparent; }
+  button.chip { cursor: pointer; }
+  button.chip:hover { border-color: var(--primary); color: var(--primary-dark); }
+
+  .notice {
+    border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: .95rem;
+    background: var(--primary-soft); color: #23426f;
+  }
+  .notice.warn { background: var(--warn-soft); color: #6b4306; }
+  .notice.bad { background: var(--bad-soft); color: #7a201c; }
+  .notice.ok { background: var(--ok-soft); color: #11583a; }
+
+  .stat { background: var(--surface-2); border-radius: 14px; padding: 14px 16px; }
+  .stat .label { font-size: .82rem; color: var(--muted); font-weight: 500; }
+  .stat .value { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .hint { font-size: .78rem; color: var(--muted); }
+
+  .progress { height: 14px; background: var(--surface-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+  .progress > div { height: 100%; background: linear-gradient(90deg, #6b95dc, var(--primary)); border-radius: 999px; transition: width .4s; }
+
+  /* ---------- Recorder ---------- */
+  .recorder { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0; }
+  .mic {
+    width: 92px; height: 92px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--primary); color: #fff; display: grid; place-items: center;
+    box-shadow: 0 6px 20px rgba(63, 111, 198, .35); transition: transform .15s, background .2s;
+  }
+  .mic:hover:not(:disabled) { transform: scale(1.04); }
+  .mic svg { width: 38px; height: 38px; }
+  .mic.recording { background: var(--bad); box-shadow: 0 0 0 0 rgba(194, 65, 59, .5); animation: pulse 1.6s infinite; }
+  .mic:disabled { background: #9aa9bf; box-shadow: none; cursor: not-allowed; }
+  .mic.sm { width: 60px; height: 60px; }
+  .mic.sm svg { width: 26px; height: 26px; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(194, 65, 59, .45); }
+    70% { box-shadow: 0 0 0 18px rgba(194, 65, 59, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(194, 65, 59, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .mic.recording { animation: none; } }
+  .rec-status { font-weight: 600; color: var(--muted); min-height: 1.5em; text-align: center; }
+  .rec-status.live { color: var(--bad); }
+  .timer { font-size: 2.6rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .level { width: 180px; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .level > div { height: 100%; width: 0; background: var(--ok); transition: width .1s; }
+  .live-text {
+    width: 100%; min-height: 70px; background: var(--surface-2); border-radius: 12px; padding: 12px 14px;
+    color: var(--text); font-size: 1rem;
+  }
+  .live-text .interim { color: var(--muted); }
+  .live-text:empty::before { content: attr(data-placeholder); color: var(--muted); }
+
+  /* ---------- Shadowing ---------- */
+  .model-sentence { font-size: 1.5rem; font-weight: 600; line-height: 1.45; margin: 6px 0 14px; }
+  .model-sentence.hidden-text { filter: blur(9px); user-select: none; }
+  .tokens { display: flex; flex-wrap: wrap; gap: 6px; font-size: 1.1rem; }
+  .tok { padding: 2px 8px; border-radius: 8px; }
+  .tok.ok { background: var(--ok-soft); color: var(--ok); }
+  .tok.missing { background: var(--bad-soft); color: var(--bad); text-decoration: line-through; }
+  .tok.changed { background: var(--warn-soft); color: var(--warn); }
+  .tok.added { background: var(--add-soft); color: var(--add); }
+  .tok small { opacity: .8; }
+  .big-number { font-size: 3rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Feedback ---------- */
+  .feedback-list { margin: 0; padding-left: 1.2em; }
+  .feedback-list li { margin-bottom: .55em; }
+  .change { border-left: 4px solid var(--warn); background: var(--surface-2); border-radius: 0 12px 12px 0; padding: 10px 14px; margin-bottom: 10px; }
+  .change .before { color: var(--bad); text-decoration: line-through; }
+  .change .after { color: var(--ok); font-weight: 600; }
+  .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .checklist li { display: flex; gap: 10px; align-items: flex-start; }
+  .checklist .mark { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: .8rem; font-weight: 700; }
+  .checklist .mark.yes { background: var(--ok-soft); color: var(--ok); }
+  .checklist .mark.no { background: var(--surface-2); color: var(--muted); border: 1px dashed #b9c6d8; }
+  mark.filler { background: var(--warn-soft); color: var(--warn); border-radius: 4px; padding: 0 3px; }
+  .transcript-box { background: var(--surface-2); border-radius: 12px; padding: 14px; white-space: pre-wrap; }
+  .versions { display: grid; gap: 12px; }
+  .version { border-radius: 12px; padding: 14px 16px; background: var(--surface-2); }
+  .version .tag { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 4px; }
+  .version.improved { background: var(--ok-soft); }
+  .version.natural { background: var(--primary-soft); }
+  .badge-rule { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: #e9edf3; color: #4b5a70; }
+
+  /* ---------- Topic & scenario pickers ---------- */
+  .topic { font-size: 1.35rem; font-weight: 650; margin: 4px 0 10px; }
+  .prompts-live { display: grid; gap: 6px; }
+  .prompts-live div { background: var(--surface-2); border-radius: 10px; padding: 8px 12px; font-size: .95rem; }
+  .scenario-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .scenario {
+    text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 16px; cursor: pointer;
+  }
+  .scenario:hover { border-color: var(--primary); background: var(--primary-soft); }
+  .scenario strong { display: block; margin-bottom: 2px; }
+
+  /* ---------- Chat ---------- */
+  .chat { display: flex; flex-direction: column; gap: 12px; max-height: 460px; overflow-y: auto; padding: 4px; }
+  .bubble { max-width: 82%; padding: 12px 16px; border-radius: 18px; }
+  .bubble.partner { background: var(--surface-2); border-bottom-left-radius: 6px; align-self: flex-start; }
+  .bubble.me { background: var(--primary); color: #fff; border-bottom-right-radius: 6px; align-self: flex-end; }
+  .bubble .who { font-size: .75rem; font-weight: 700; opacity: .75; margin-bottom: 2px; }
+  .bubble .note { margin-top: 8px; font-size: .85rem; background: rgba(255,255,255,.16); border-radius: 10px; padding: 6px 10px; }
+  .bubble.partner .note { background: var(--surface); }
+  .bubble .icon-btn { background: none; border: 0; color: inherit; cursor: pointer; padding: 2px 4px; font-size: .85rem; text-decoration: underline; }
+
+  /* ---------- Daily plan ---------- */
+  .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .step { display: flex; gap: 14px; align-items: center; background: var(--surface-2); border-radius: 14px; padding: 14px 16px; flex-wrap: wrap; }
+  .step .num { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; flex: none; }
+  .step.done .num { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .step .body { flex: 1; min-width: 200px; }
+  .daily-banner { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--primary-soft); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; }
+  .vocab { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #22324a; color: #fff;
+    padding: 12px 20px; border-radius: 12px; z-index: 100; max-width: calc(100% - 32px); box-shadow: var(--shadow);
+  }
+  details summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===================== NAVIGATION ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">VoiceMirror</div>
+        <div class="brand-sub">English Fluency Coach</div>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Main">
+      <button data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Dashboard</button>
+      <button data-view="daily"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M9 15l2 2 4-4"/></svg>Daily Challenge</button>
+      <button data-view="shadowing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>Shadowing</button>
+      <button data-view="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>Speak Freely</button>
+      <button data-view="conversation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Conversation</button>
+      <button data-view="coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Sentence Coach</button>
+      <button data-view="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>Progress</button>
+    </nav>
+  </aside>
+
+  <main class="main" id="main">
+    <!-- ===================== DASHBOARD ===================== -->
+    <section class="view" id="view-dashboard" hidden>
+      <div class="view-head">
+        <h1 id="greeting">Welcome back</h1>
+        <p>Step by step, from repeating sentences to speaking your own thoughts for five minutes. Do a little every day.</p>
+      </div>
+      <div id="compat-notices"></div>
+      <div class="card">
+        <div class="row"><h2 style="margin:0">Your five-minute goal</h2><span class="spacer"></span><span class="chip info" id="dash-goal-label">0:00 / 5:00</span></div>
+        <p class="muted small" style="margin:.4em 0 .8em">Based on your longest single Speak Freely attempt.</p>
+        <div class="progress" role="progressbar" aria-label="Five-minute goal progress" aria-valuemin="0" aria-valuemax="100"><div id="dash-goal-bar" style="width:0"></div></div>
+        <p class="small" id="dash-goal-tip" style="margin-top:.8em"></p>
+      </div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h2>Today's challenge</h2>
+          <p class="muted" id="dash-daily-summary">A 15–20 minute guided session.</p>
+          <div class="progress" style="margin-bottom:14px"><div id="dash-daily-bar" style="width:0"></div></div>
+          <button class="btn primary" data-go="daily">Open today's plan</button>
+        </div>
+        <div class="card">
+          <h2>At a glance</h2>
+          <div class="grid cols-2" style="gap:10px">
+            <div class="stat"><div class="label">Sessions</div><div class="value" id="dash-sessions">0</div></div>
+            <div class="stat"><div class="label">Minutes speaking</div><div class="value" id="dash-minutes">0</div></div>
+            <div class="stat"><div class="label">Exercises</div><div class="value" id="dash-exercises">0</div></div>
+            <div class="stat"><div class="label">Longest attempt</div><div class="value" id="dash-longest">0:00</div></div>
+          </div>
+        </div>
+      </div>
+      <h2 style="margin-top:8px">Practice modes</h2>
+      <div class="grid cols-3">
+        <div class="card"><h3>1 · Shadowing</h3><p class="muted small">Listen to a natural sentence, repeat it, and see which words were recognised.</p><button class="btn" data-go="shadowing">Start shadowing</button></div>
+        <div class="card"><h3>2 · Speak Freely</h3><p class="muted small">Talk about a topic for 1–5 minutes, then review what you said.</p><button class="btn" data-go="speak">Start speaking</button></div>
+        <div class="card"><h3>3 · Conversation</h3><p class="muted small">Answer one question at a time in everyday situations.</p><button class="btn" data-go="conversation">Start a conversation</button></div>
+        <div class="card"><h3>4 · Sentence Coach</h3><p class="muted small">Say or type a sentence and get a corrected and a more natural version.</p><button class="btn" data-go="coach">Improve a sentence</button></div>
+        <div class="card"><h3>5 · Daily Challenge</h3><p class="muted small">Warm-up, shadowing, free speaking, vocabulary, and reflection.</p><button class="btn" data-go="daily">See today's plan</button></div>
+      </div>
+      <details class="card soft">
+        <summary>How the feedback works (please read once)</summary>
+        <ul class="feedback-list" style="margin-top:12px">
+          <li><strong>Speech-to-text:</strong> Chrome's built-in speech recognition turns your voice into text. Chrome usually sends the audio to Google's servers to do this, so it needs an internet connection.</li>
+          <li><strong>All feedback here is rule-based, not AI.</strong> VoiceMirror checks the transcript with transparent local rules: word matching, filler-word lists, repetition counts, and a list of common grammar patterns. It can miss mistakes and it cannot understand meaning the way a teacher or an AI can.</li>
+          <li><strong>What it does not measure:</strong> pronunciation accuracy, accent, intonation, confidence, or emotion. A word that wasn't recognised might be a recognition error, not your mistake. Your accent is never scored.</li>
+          <li><strong>Your privacy:</strong> progress is saved only in this browser (localStorage). Recordings stay in memory until you leave the page, unless you choose to download them.</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- ===================== DAILY CHALLENGE ===================== -->
+    <section class="view" id="view-daily" hidden>
+      <div class="view-head">
+        <h1>Daily Fluency Challenge</h1>
+        <p id="daily-date">About 15–20 minutes. Do the steps in order; each one opens the right practice mode with today's content.</p>
+      </div>
+      <div class="card">
+        <div class="row"><h2 style="margin:0">Today's plan</h2><span class="spacer"></span><span class="chip info" id="daily-count">0 / 5 done</span></div>
+        <div class="progress" style="margin:12px 0 18px"><div id="daily-bar" style="width:0"></div></div>
+        <ol class="steps" id="daily-steps"></ol>
+      </div>
+      <div class="card">
+        <h2>Today's words</h2>
+        <p class="muted small">Use these in step 4. Try to say each one in your own sentence.</p>
+        <div class="grid cols-3" id="daily-vocab"></div>
+      </div>
+      <div class="card" id="daily-reflection-card">
+        <h2>Step 5 · Reflection</h2>
+        <p class="muted small">Two or three sentences are enough. You can type, or press the microphone and speak.</p>
+        <ul class="feedback-list small muted" id="daily-reflect-prompts"></ul>
+        <textarea id="daily-reflection" placeholder="Today I practised… I noticed that… Tomorrow I want to…"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="daily-save-reflection">Save reflection</button>
+          <button class="btn" id="daily-reflect-mic">Speak my reflection</button>
+          <span class="small muted" id="daily-reflect-status"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SHADOWING ===================== -->
+    <section class="view" id="view-shadowing" hidden>
+      <div class="view-head">
+        <h1>Shadowing</h1>
+        <p>Listen, then repeat the sentence in one smooth breath. Copy the rhythm, not just the words.</p>
+      </div>
+      <div class="daily-banner" data-daily-banner hidden></div>
+      <div class="card">
+        <div class="row">
+          <label class="field">Level
+            <select id="sh-level">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="upper">Upper-intermediate</option>
+            </select>
+          </label>
+          <span class="spacer"></span>
+          <span class="chip" id="sh-counter">1 / 10</span>
+        </div>
+        <div class="model-sentence" id="sh-sentence"></div>
+        <div class="row">
+          <button class="btn primary" id="sh-play">Listen</button>
+          <button class="btn" id="sh-play-slow">Listen slowly</button>
+          <button class="btn" id="sh-hide">Hide text</button>
+          <span class="spacer"></span>
+          <button class="btn small" id="sh-prev">Previous</button>
+          <button class="btn small" id="sh-next">Next sentence</button>
+        </div>
+        <p class="small muted" id="sh-tts-note" style="margin-top:10px"></p>
+      </div>
+      <div class="card">
+        <div class="recorder">
+          <button class="mic" id="sh-mic" aria-label="Record yourself"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg></button>
+          <div class="rec-status" id="sh-status" aria-live="polite">Press the microphone, then repeat the sentence.</div>
+          <div class="level" aria-hidden="true"><div id="sh-level-bar"></div></div>
+          <div class="live-text" id="sh-live" data-placeholder="What Chrome hears will appear here."></div>
+        </div>
+      </div>
+      <div class="card" id="sh-result" hidden></div>
+    </section>
+
+    <!-- ===================== SPEAK FREELY ===================== -->
+    <section class="view" id="view-speak" hidden>
+      <div class="view-head">
+        <h1>Speak Freely</h1>
+        <p>Don't stop to look for perfect words. Keep going: explain why, give an example, say how you felt, and share what you learned.</p>
+      </div>
+      <div class="daily-banner" data-daily-banner hidden></div>
+      <div class="card">
+        <div class="row">
+          <span class="chip info">Your topic</span>
+          <span class="spacer"></span>
+          <label class="field">Duration
+            <select id="sp-duration">
+              <option value="60">1 minute</option>
+              <option value="120">2 minutes</option>
+              <option value="180">3 minutes</option>
+              <option value="300">5 minutes</option>
+            </select>
+          </label>
+        </div>
+        <div class="topic" id="sp-topic"></div>
+        <div class="row">
+          <button class="btn small" id="sp-new-topic">Different topic</button>
+          <button class="btn small" id="sp-read-topic">Read topic aloud</button>
+        </div>
+      </div>
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="recorder">
+            <div class="timer" id="sp-timer">0:00</div>
+            <div class="small muted" id="sp-remaining">Goal: 1:00</div>
+            <div class="progress" style="width:100%"><div id="sp-time-bar" style="width:0"></div></div>
+            <button class="mic" id="sp-mic" aria-label="Start speaking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg></button>
+            <div class="rec-status" id="sp-status" aria-live="polite">Press the microphone when you're ready.</div>
+            <div class="level" aria-hidden="true"><div id="sp-level-bar"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Stuck? Keep talking with these</h3>
+          <div class="prompts-live" id="sp-ideas"></div>
+          <p class="small muted" style="margin-top:10px">Useful bridges: "Let me think…", "What I mean is…", "Another thing is…", "The reason is…"</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Live transcript</h3>
+        <div class="live-text" id="sp-live" data-placeholder="Your words will appear here as Chrome recognises them."></div>
+        <details style="margin-top:14px" id="sp-typed-wrap">
+          <summary>Type your answer instead</summary>
+          <p class="small muted" style="margin-top:8px">Use this if speech recognition isn't available or missed what you said. Typed answers get the same text analysis, but speaking time isn't measured.</p>
+          <textarea id="sp-typed" placeholder="Type what you want to say about the topic…"></textarea>
+          <button class="btn" id="sp-analyse-typed" style="margin-top:8px">Analyse typed answer</button>
+        </details>
+      </div>
+      <div id="sp-result" hidden></div>
+    </section>
+
+    <!-- ===================== CONVERSATION ===================== -->
+    <section class="view" id="view-conversation" hidden>
+      <div class="view-head">
+        <h1>Conversation Practice</h1>
+        <p>Answer naturally, the way you would talk to a real person. Short answers are fine at first. Then add one more detail each time.</p>
+      </div>
+      <div class="notice"><span class="badge-rule">Rule-based</span> This practice partner is <strong>not AI</strong>. It uses prepared question banks and simple rules. For example, if your answer is short, it asks a follow-up question. It does not understand your meaning the way a person would.</div>
+      <div class="card" id="cv-picker">
+        <h2>Choose a situation</h2>
+        <div class="scenario-grid" id="cv-scenarios"></div>
+      </div>
+      <div id="cv-session" hidden>
+        <div class="card">
+          <div class="row">
+            <h2 style="margin:0" id="cv-title"></h2>
+            <span class="spacer"></span>
+            <label class="row small" style="gap:6px"><input type="checkbox" id="cv-autoread" checked> Read questions aloud</label>
+          </div>
+          <p class="muted small" id="cv-role" style="margin-top:4px"></p>
+          <div class="chat" id="cv-chat" aria-live="polite"></div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:flex-start">
+            <div class="recorder" style="padding:0">
+              <button class="mic sm" id="cv-mic" aria-label="Speak your answer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg></button>
+            </div>
+            <div style="flex:1; min-width:220px">
+              <div class="rec-status" id="cv-status" style="text-align:left">Press the microphone and answer, or type below.</div>
+              <div class="live-text" id="cv-live" data-placeholder="Your spoken answer appears here."></div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <input type="text" id="cv-input" placeholder="Or type your answer…" style="flex:1; min-width:200px">
+            <button class="btn primary" id="cv-send">Send answer</button>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn small" id="cv-help">Help me answer</button>
+            <button class="btn small" id="cv-repeat">Repeat question</button>
+            <button class="btn small" id="cv-skip">Skip question</button>
+            <span class="spacer"></span>
+            <button class="btn small danger" id="cv-end">End conversation</button>
+          </div>
+          <div id="cv-help-box" class="notice" style="margin-top:12px" hidden></div>
+        </div>
+      </div>
+      <div class="card" id="cv-summary" hidden></div>
+    </section>
+
+    <!-- ===================== SENTENCE COACH ===================== -->
+    <section class="view" id="view-coach" hidden>
+      <div class="view-head">
+        <h1>Sentence Coach</h1>
+        <p>Say or type a sentence you would use in real life. You'll get a corrected version, a more natural version, and examples.</p>
+      </div>
+      <div class="daily-banner" data-daily-banner hidden></div>
+      <div class="notice"><span class="badge-rule">Rule-based</span> The checker looks for about 50 common learner patterns, such as "didn't went", "since two years", or "discuss about". It is <strong>not AI</strong>. It can miss mistakes and cannot check whether the meaning is clear. If it finds nothing, that doesn't guarantee the sentence is perfect.</div>
+      <div class="card">
+        <label class="field" for="co-input">Your sentence</label>
+        <textarea id="co-input" placeholder="e.g. Yesterday I go to market and buyed vegetables."></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="co-check">Improve my sentence</button>
+          <button class="btn" id="co-mic">Speak a sentence</button>
+          <button class="btn small" id="co-clear">Clear</button>
+          <span class="small muted" id="co-status" aria-live="polite"></span>
+        </div>
+        <div style="margin-top:14px">
+          <span class="small muted">Try an example:</span>
+          <div class="row" id="co-samples" style="margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="card" id="co-result" hidden></div>
+    </section>
+
+    <!-- ===================== PROGRESS ===================== -->
+    <section class="view" id="view-progress" hidden>
+      <div class="view-head">
+        <h1>Progress</h1>
+        <p>Saved only in this browser on this device.</p>
+      </div>
+      <div class="card">
+        <div class="row"><h2 style="margin:0">Five-minute speaking goal</h2><span class="spacer"></span><span class="chip info" id="pr-goal-label">0:00 / 5:00</span></div>
+        <div class="progress" style="margin:14px 0 8px"><div id="pr-goal-bar" style="width:0"></div></div>
+        <p class="small muted" id="pr-goal-tip"></p>
+      </div>
+      <div class="grid cols-3">
+        <div class="stat"><div class="label">Practice sessions</div><div class="value" id="pr-sessions">0</div><div class="hint">A new session starts after 30 minutes without practice</div></div>
+        <div class="stat"><div class="label">Total minutes speaking</div><div class="value" id="pr-minutes">0</div><div class="hint">Recording time across all modes</div></div>
+        <div class="stat"><div class="label">Longest speaking attempt</div><div class="value" id="pr-longest">0:00</div><div class="hint" id="pr-longest-topic">Speak Freely</div></div>
+        <div class="stat"><div class="label">Completed exercises</div><div class="value" id="pr-exercises">0</div><div class="hint">Attempts, conversations, checks, daily steps</div></div>
+        <div class="stat"><div class="label">Daily challenges finished</div><div class="value" id="pr-dailies">0</div><div class="hint">All 5 steps on one day</div></div>
+        <div class="stat"><div class="label">Practice streak</div><div class="value" id="pr-streak">0</div><div class="hint">Days in a row</div></div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <h2>Recent practice</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>When</th><th>Mode</th><th>Details</th><th>Time</th><th>Words</th></tr></thead>
+          <tbody id="pr-history"></tbody>
+        </table></div>
+        <p class="muted small" id="pr-history-empty">No practice yet. Your attempts will appear here.</p>
+      </div>
+      <div class="card">
+        <h2>Preferences</h2>
+        <div class="grid cols-3">
+          <label class="field">Speech recognition accent
+            <select id="pref-lang">
+              <option value="en-IN">English (India)</option>
+              <option value="en-US">English (US)</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="en-AU">English (Australia)</option>
+            </select>
+          </label>
+          <label class="field">Model voice
+            <select id="pref-voice"></select>
+          </label>
+          <label class="field">Normal speaking rate
+            <select id="pref-rate">
+              <option value="0.9">0.9× (relaxed)</option>
+              <option value="1">1.0× (natural)</option>
+              <option value="1.1">1.1× (brisk)</option>
+            </select>
+          </label>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn small" id="pref-test-voice">Test voice</button></div>
+        <p class="small muted" style="margin-top:10px">Tip: "English (India)" usually recognises Indian-accented speech best. It changes only how speech is transcribed, never how you're scored.</p>
+      </div>
+      <div class="card">
+        <h2>Reset</h2>
+        <p class="muted small">Deletes all saved progress, history, reflections, and preferences in this browser. This cannot be undone.</p>
+        <div class="row" id="reset-row">
+          <button class="btn danger" id="reset-start">Reset my progress</button>
+        </div>
+        <div class="row" id="reset-confirm" hidden>
+          <strong>Delete everything?</strong>
+          <button class="btn danger solid" id="reset-yes">Yes, delete my progress</button>
+          <button class="btn" id="reset-no">Cancel</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script id="core-data">
+/* =====================================================================
+   CONTENT: practice material. Pure data, safe to edit or extend.
+   ===================================================================== */
+const DATA = {};
+
+DATA.shadow = {
+  beginner: [
+    "Good morning. How are you today?",
+    "I usually wake up at seven o'clock.",
+    "I like to drink tea in the evening.",
+    "Can you help me with this, please?",
+    "My brother lives in a big city.",
+    "I'm sorry, I didn't hear you.",
+    "We are going to the park this weekend.",
+    "What time does the shop open?",
+    "I'm learning English every day.",
+    "Thank you so much for your help."
+  ],
+  intermediate: [
+    "I've been working here for about three years now.",
+    "Could you tell me the best way to get to the station?",
+    "To be honest, I didn't expect it to be so difficult.",
+    "If it rains tomorrow, we'll stay at home and watch a movie.",
+    "I'm not sure yet, but I think it's a good idea.",
+    "Let me think about it for a moment before I answer.",
+    "She explained it so clearly that everyone understood.",
+    "I'd rather walk than wait for the bus in this traffic.",
+    "It was hard at first, but now it feels completely normal.",
+    "What I really enjoy about my job is the people I work with."
+  ],
+  upper: [
+    "Looking back, I realise that mistake taught me more than any success.",
+    "I see your point, but I'm not entirely convinced it would work in practice.",
+    "The more I practise speaking, the less I worry about making mistakes.",
+    "If I had known about the traffic, I would have left much earlier.",
+    "What surprised me most was how quickly everyone adapted to the change.",
+    "I'd like to share an idea that could save us a lot of time and effort.",
+    "Although it wasn't my first choice, it turned out to be the right decision.",
+    "Before we make a final decision, let's weigh up the pros and cons.",
+    "Confidence doesn't mean never feeling nervous; it means speaking anyway.",
+    "It's not about sounding perfect; it's about expressing what you really think."
+  ]
+};
+
+// Each topic has "ideas": follow-up questions that help you keep talking.
+DATA.topics = [
+  { t: "Tell me about yourself.", ideas: ["Where are you from, and what is it like there?", "What do you do every day: work, study, or family?", "What do you enjoy doing in your free time, and why?", "What is one goal you have right now?"] },
+  { t: "Describe your daily routine.", ideas: ["What do you do first in the morning?", "What is the busiest part of your day?", "Which part of the day do you enjoy most, and why?", "What would you like to change about your routine?"] },
+  { t: "Talk about a mistake you learned from.", ideas: ["What happened? Set the scene.", "How did you feel at that moment?", "What did you do next?", "What did you learn, and what do you do differently now?"] },
+  { t: "Describe a difficult situation and how you handled it.", ideas: ["When and where did it happen?", "Why was it difficult for you?", "What steps did you take to solve it?", "Looking back, would you do anything differently?"] },
+  { t: "What does confidence mean to you?", ideas: ["Describe a confident person you know.", "When do you feel most confident?", "When do you feel less confident, and why?", "What small step could make you more confident?"] },
+  { t: "Talk about something you want to learn.", ideas: ["What is it, and why does it interest you?", "When did you first become interested?", "How will you start learning it?", "How will it change your life?"] },
+  { t: "Describe a memorable experience.", ideas: ["Where were you, and who was with you?", "What exactly happened?", "How did you feel?", "Why do you still remember it?"] },
+  { t: "Explain your opinion: is it better to work from home or in an office?", ideas: ["What is your opinion, in one sentence?", "Give your main reason.", "Give an example from your life or someone you know.", "What would someone with the opposite opinion say?"] },
+  { t: "What would you change about your life?", ideas: ["What would you change first?", "Why is it important to you?", "What is stopping you right now?", "What is one small step you could take this week?"] },
+  { t: "Describe a goal you are working towards.", ideas: ["What is the goal?", "Why did you choose it?", "What have you done so far?", "What is the hardest part, and how will you deal with it?"] },
+  { t: "Describe the place where you live.", ideas: ["What does it look like?", "What do you like most about it?", "What would you improve?", "Would you recommend it to a visitor? Why?"] },
+  { t: "Talk about a person who has influenced you.", ideas: ["Who is this person and how do you know them?", "What did they do or say that influenced you?", "Tell a short story about them.", "How are you different because of them?"] },
+  { t: "Describe your favourite food and why you like it.", ideas: ["What is it and where is it from?", "How is it made?", "When do you usually eat it, and with whom?", "Is there a memory connected to this food?"] },
+  { t: "Talk about how technology affects your life.", ideas: ["Which technology do you use most?", "How does it help you?", "Does it cause any problems?", "How was life different without it?"] },
+  { t: "Describe a perfect weekend.", ideas: ["Where would you be?", "What would you do in the morning, afternoon, and evening?", "Who would be with you?", "Why would it be perfect for you?"] },
+  { t: "Why are you learning English?", ideas: ["When did you start learning?", "Where do you use English now?", "What is the hardest part for you?", "What will you be able to do when you are fluent?"] },
+  { t: "Talk about a skill you are proud of.", ideas: ["What is the skill?", "How did you learn it?", "Tell a story about a time you used it.", "How could you teach it to someone else?"] },
+  { t: "Describe a festival or celebration you enjoy.", ideas: ["What is it and when does it happen?", "How do people celebrate it?", "What do you do personally?", "What does it mean to you?"] },
+  { t: "Talk about a time you helped someone.", ideas: ["Who did you help, and why did they need help?", "What did you do?", "How did they react?", "How did it make you feel?"] },
+  { t: "What makes a good friend?", ideas: ["What qualities matter most to you?", "Describe a good friend of yours.", "Tell a story about a time a friend supported you.", "How do you try to be a good friend?"] }
+];
+
+// Rule-based conversation scenarios. "follow" is asked if your answer is short.
+DATA.scenarios = [
+  { id: "neighbour", title: "Talking to a neighbour", desc: "A friendly chat outside your home.", role: "Your partner is a friendly neighbour.",
+    opening: "Oh, hello! I don't think we've talked properly before. I live just next door.",
+    questions: [
+      { q: "How long have you been living in this area?", follow: "And how do you like it so far?", help: ["I've been living here for about…", "We moved here in… because…"] },
+      { q: "What do you like most about this neighbourhood?", follow: "Is there anything you'd like to change?", help: ["What I like most is…", "It's really convenient because…"] },
+      { q: "Do you know any good places to eat or shop nearby?", follow: "What do you usually buy or order there?", help: ["There's a nice place called… near…", "I usually go to… because…"] },
+      { q: "What do you usually do on weekends?", follow: "That sounds nice. Who do you usually spend it with?", help: ["On weekends I usually…", "It depends. Sometimes I…, and sometimes I…"] },
+      { q: "If you ever need anything, just knock on my door. Is there anything I can help you with?", follow: "Are you sure? It's no trouble at all.", help: ["That's very kind of you. Actually, …", "Thanks so much! I'll let you know if…"] }
+    ],
+    closing: "Well, it was lovely talking to you. See you around!",
+    phrases: ["Nice to finally meet you properly.", "How long have you lived here?", "Let me know if you ever need anything.", "See you around!"] },
+  { id: "new", title: "Meeting someone new", desc: "Introduce yourself and keep the chat going.", role: "Your partner is someone you've just met at an event.",
+    opening: "Hi there! I'm new here. I don't really know anyone yet.",
+    questions: [
+      { q: "So, tell me a little about yourself. What do you do?", follow: "Interesting! What do you enjoy most about it?", help: ["I work as a… at…", "At the moment I'm… and I'm also…"] },
+      { q: "Where are you from originally?", follow: "What is it like there?", help: ["I'm originally from…, which is…", "I grew up in…, but now I live in…"] },
+      { q: "What do you like to do in your free time?", follow: "How did you get into that?", help: ["In my free time I like to…", "I've recently started… because…"] },
+      { q: "Have you travelled anywhere interesting recently?", follow: "What was the best part of that trip?", help: ["Last year I went to…", "Not recently, but I'd love to visit… because…"] },
+      { q: "What brought you to this event today?", follow: "And are you enjoying it so far?", help: ["A friend invited me, and…", "I wanted to meet new people and…"] }
+    ],
+    closing: "It's been really nice meeting you. Let's keep in touch!",
+    phrases: ["Nice to meet you. I'm…", "What about you?", "That sounds interesting. Tell me more.", "Let's keep in touch."] },
+  { id: "teacher", title: "Speaking to a teacher", desc: "Ask for help and explain your progress.", role: "Your partner is your teacher or course instructor.",
+    opening: "Hello! Come in, please. You wanted to talk to me?",
+    questions: [
+      { q: "What would you like to talk about today?", follow: "Could you explain that a bit more?", help: ["I wanted to ask you about…", "I'm having some trouble with…"] },
+      { q: "Which part of the course do you find most difficult?", follow: "Why do you think that part is hard for you?", help: ["The most difficult part for me is…", "I find… challenging because…"] },
+      { q: "How do you usually study at home?", follow: "How much time do you spend on it each week?", help: ["Usually I…, and then I…", "I try to study for about… every day."] },
+      { q: "What do you think would help you improve?", follow: "That's a good idea. How could you start this week?", help: ["I think it would help if I…", "Maybe I could… more often."] },
+      { q: "Is there anything else you'd like me to explain again?", follow: "No problem. Which part exactly?", help: ["Could you explain… one more time?", "I think I understand now, but…"] }
+    ],
+    closing: "Great talk. Keep practising, and come back any time you have questions.",
+    phrases: ["Could you explain that again, please?", "I'm having trouble with…", "What would you recommend?", "Thank you for your time."] },
+  { id: "store", title: "At a store", desc: "Ask for a product, size, price, and payment.", role: "Your partner is a shop assistant.",
+    opening: "Good afternoon! Welcome to the store.",
+    questions: [
+      { q: "Can I help you find anything today?", follow: "Sure. Is it for yourself or a gift?", help: ["Yes, I'm looking for…", "I'm just looking, thanks. Actually, do you have…?"] },
+      { q: "What size or colour would you like?", follow: "Would you like to try a different one as well?", help: ["Do you have this in a medium?", "I'd prefer something in blue, if you have it."] },
+      { q: "This one is on sale this week. What do you think?", follow: "Is the price okay for you?", help: ["It looks nice, but it's a bit expensive.", "That's a good deal. Can I try it first?"] },
+      { q: "Would you like anything else?", follow: "Okay. Did you find everything you needed?", help: ["No, that's everything, thanks.", "Actually, could I also get…?"] },
+      { q: "How would you like to pay?", follow: "Would you like a receipt?", help: ["By card, please.", "Can I pay with UPI / cash?"] }
+    ],
+    closing: "Here you go. Thanks for shopping with us, and have a nice day!",
+    phrases: ["I'm looking for…", "Do you have this in another size?", "How much is this?", "Can I pay by card?"] },
+  { id: "smalltalk", title: "Making small talk", desc: "Light, friendly conversation with a colleague.", role: "Your partner is a colleague at the coffee machine.",
+    opening: "Morning! Ugh, I needed this coffee today.",
+    questions: [
+      { q: "How was your weekend?", follow: "Oh nice. What did you do?", help: ["It was great, thanks. I…", "Pretty quiet, actually. I just…"] },
+      { q: "Crazy weather lately, isn't it?", follow: "Do you prefer hot or cold weather?", help: ["I know! It's been so… lately.", "Yes, I actually like it because…"] },
+      { q: "Are you busy with anything interesting at work these days?", follow: "How is it going so far?", help: ["Yes, I'm working on…", "It's been busy. We're trying to…"] },
+      { q: "Have you watched anything good recently?", follow: "What's it about?", help: ["I've just started watching…", "Not really, do you have any recommendations?"] },
+      { q: "Any plans for the evening?", follow: "That sounds nice. Do you do that often?", help: ["Nothing special, probably just…", "I'm meeting some friends for…"] }
+    ],
+    closing: "Well, back to work I guess. Talk later!",
+    phrases: ["How's it going?", "How was your weekend?", "Really? That sounds fun.", "Talk to you later!"] },
+  { id: "problem", title: "Explaining a problem", desc: "Describe an issue clearly and ask for a solution.", role: "Your partner is a customer support person.",
+    opening: "Hello, thank you for calling. How can I help you today?",
+    questions: [
+      { q: "Could you describe the problem you're having?", follow: "When did you first notice this?", help: ["I'm calling because… isn't working.", "The problem is that…"] },
+      { q: "What exactly happens when you try to use it?", follow: "Does this happen every time or only sometimes?", help: ["When I try to…, it…", "It shows an error that says…"] },
+      { q: "Have you tried anything to fix it already?", follow: "Okay. Did that change anything?", help: ["Yes, I tried… but it didn't help.", "Not yet. What do you suggest?"] },
+      { q: "How is this affecting you?", follow: "I understand. Is it urgent?", help: ["It's a problem because I need it for…", "It's quite urgent because…"] },
+      { q: "What would be the best solution for you?", follow: "Would that work for you this week?", help: ["Ideally, I'd like a replacement / refund.", "Could someone come and check it?"] }
+    ],
+    closing: "Thank you for explaining so clearly. We'll sort this out for you.",
+    phrases: ["I'm calling about a problem with…", "It started… ago.", "I've already tried…", "What can you do to help?"] },
+  { id: "opinion", title: "Expressing an opinion politely", desc: "Share and defend a view respectfully.", role: "Your partner is a friend who likes to discuss ideas.",
+    opening: "I've been thinking about something and I'd love to hear your view.",
+    questions: [
+      { q: "Do you think social media does more good than harm?", follow: "Why do you think so?", help: ["In my opinion, …", "I'd say it depends. On the one hand… on the other hand…"] },
+      { q: "Can you give me an example to support that?", follow: "Has that happened to you or someone you know?", help: ["For example, …", "A good example is when…"] },
+      { q: "Honestly, I see it differently. I think it mostly makes people lonely. What would you say to that?", follow: "So do you agree with me at all?", help: ["I see your point, but…", "That's true to some extent, however…"] },
+      { q: "Should children be allowed to use smartphones?", follow: "At what age, do you think?", help: ["I believe children should… because…", "I'm not completely sure, but…"] },
+      { q: "Has your opinion on anything changed in the last few years?", follow: "What made you change your mind?", help: ["Yes, I used to think… but now…", "I don't think so. I've always believed…"] }
+    ],
+    closing: "I really enjoyed this discussion. You made some good points!",
+    phrases: ["In my opinion…", "I see your point, but…", "That's a fair point.", "I'm not sure I agree, because…"] },
+  { id: "interview", title: "Job interview", desc: "Answer common interview questions clearly.", role: "Your partner is an interviewer.",
+    opening: "Good morning, and thank you for coming in today. Please, have a seat.",
+    questions: [
+      { q: "Could you start by telling me a little about yourself?", follow: "What would you say is your biggest strength?", help: ["Sure. I'm a… with… years of experience in…", "I currently work at…, where I…"] },
+      { q: "Why are you interested in this position?", follow: "What do you know about our company?", help: ["I'm interested because…", "This role matches my experience in…"] },
+      { q: "Tell me about a challenge you faced at work and how you handled it.", follow: "What was the result?", help: ["In my last job, we had a problem with…", "First I…, then I…, and in the end…"] },
+      { q: "What is one area you would like to improve in?", follow: "What are you doing to improve it?", help: ["One thing I'm working on is…", "I'd like to get better at…, so I've started…"] },
+      { q: "Where do you see yourself in five years?", follow: "How would this role help you get there?", help: ["In five years, I'd like to…", "I hope to have grown into…"] },
+      { q: "Do you have any questions for us?", follow: "Anything about the team or the role?", help: ["Yes, could you tell me more about…?", "What does a typical day look like in this role?"] }
+    ],
+    closing: "Thank you very much. We'll be in touch soon.",
+    phrases: ["I have… years of experience in…", "One example is when I…", "I'm currently working on improving…", "Could you tell me more about…?"] }
+];
+
+DATA.warmups = [
+  "Describe everything you can see around you right now.",
+  "Talk about what you did yesterday, from morning to night.",
+  "Describe what you ate today and whether you enjoyed it.",
+  "Talk about the weather today and how it makes you feel.",
+  "Describe your plan for the rest of today.",
+  "Talk about the last thing that made you smile.",
+  "Describe a room in your home in detail.",
+  "Talk about a song, show, or video you liked recently.",
+  "Describe the journey from your home to a place you go often.",
+  "Talk about three things you're grateful for today and why."
+];
+
+DATA.vocab = [
+  [ { w: "eventually", m: "in the end, after some time", ex: "It was hard at first, but eventually I got used to it." },
+    { w: "manage to", m: "succeed in doing something difficult", ex: "I managed to finish the work before the deadline." },
+    { w: "to be honest", m: "used before saying what you really think", ex: "To be honest, I prefer staying at home." } ],
+  [ { w: "figure out", m: "understand or solve", ex: "I couldn't figure out how to fix my laptop." },
+    { w: "worth it", m: "good enough to justify the effort or cost", ex: "The trip was long, but it was totally worth it." },
+    { w: "on the other hand", m: "used to give the opposite side", ex: "City life is exciting. On the other hand, it's expensive." } ],
+  [ { w: "get used to", m: "become familiar with something", ex: "I'm slowly getting used to waking up early." },
+    { w: "look forward to", m: "feel happy about something in the future", ex: "I'm looking forward to the weekend." },
+    { w: "as a result", m: "because of that", ex: "I practised every day. As a result, I felt more confident." } ],
+  [ { w: "come up with", m: "think of an idea or plan", ex: "We came up with a simple solution." },
+    { w: "deal with", m: "handle a problem or situation", ex: "I had to deal with a difficult customer today." },
+    { w: "it turns out", m: "the result was surprising", ex: "It turns out the shop was closed on Mondays." } ],
+  [ { w: "rewarding", m: "giving satisfaction", ex: "Teaching children is hard but very rewarding." },
+    { w: "keep up with", m: "stay at the same level or speed", ex: "It's hard to keep up with all my emails." },
+    { w: "in the long run", m: "over a long period of time", ex: "Saving a little every month helps in the long run." } ],
+  [ { w: "overwhelmed", m: "feeling there is too much to handle", ex: "I felt overwhelmed during my first week at work." },
+    { w: "pick up", m: "learn something without studying formally", ex: "I picked up some Tamil from my friends." },
+    { w: "the thing is", m: "used to explain the real issue", ex: "I'd love to come. The thing is, I have to work." } ],
+  [ { w: "go through", m: "experience something difficult", ex: "She went through a tough time last year." },
+    { w: "reliable", m: "can be trusted", ex: "He's a reliable friend; he always keeps his word." },
+    { w: "after all", m: "considering everything", ex: "Don't be too hard on yourself. After all, you're still learning." } ],
+  [ { w: "run out of", m: "have no more of something", ex: "We ran out of milk this morning." },
+    { w: "make sense", m: "be logical or easy to understand", ex: "Your explanation really makes sense." },
+    { w: "as far as I know", m: "based on what I know", ex: "As far as I know, the meeting is at ten." } ],
+  [ { w: "convenient", m: "easy and suitable", ex: "Living near the station is very convenient." },
+    { w: "end up", m: "finally be in a situation, often unplanned", ex: "We wanted to go out but ended up staying home." },
+    { w: "that's why", m: "for that reason", ex: "I love cooking. That's why I try new recipes every week." } ],
+  [ { w: "challenging", m: "difficult in a way that tests you", ex: "My new job is challenging but interesting." },
+    { w: "set aside", m: "keep time or money for a purpose", ex: "I set aside twenty minutes every day for English." },
+    { w: "in other words", m: "used to say something more simply", ex: "He's always late. In other words, he's not very organised." } ]
+];
+
+DATA.coachSamples = [
+  "Yesterday I go to market and buyed vegetables.",
+  "I am working here since two years.",
+  "She don't like coffee.",
+  "I didn't went to office today.",
+  "Can you explain me this problem?",
+  "We discussed about the project.",
+  "I can able to speak English.",
+  "One of my friend is a doctor.",
+  "I am having two brothers.",
+  "According to me, this is very very good idea."
+];
+
+DATA.reflectPrompts = [
+  "What did I practise today?",
+  "What felt easier than before?",
+  "Which word, phrase or correction will I use tomorrow?"
+];
+</script>
+<script id="core-logic">
+/* =====================================================================
+   CORE LOGIC: pure text functions (no DOM). Everything here is local,
+   rule-based and transparent. No AI, no network.
+   ===================================================================== */
+
+// ---------- Small helpers ----------
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const alt = list => [...new Set(list)].sort((a, b) => b.length - a.length).map(escRe).join('|');
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+function fmtTime(sec) {
+  sec = Math.max(0, Math.round(sec || 0));
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+// Lower-case word tokens, keeping apostrophes (don't, I'm).
+function words(text) {
+  return (String(text || '').toLowerCase().replace(/[’‘]/g, "'").match(/[a-z0-9]+(?:'[a-z]+)?/g)) || [];
+}
+
+const STOPWORDS = new Set(("a an the and or but so to of in on at for with from by about as into than then that this these those it its it's is am are was were be been being " +
+  "i i'm i've i'd i'll me my mine you you're your we we're our us they they're them their he he's him his she she's her " +
+  "do does did don't didn't doesn't have has had not no yes there there's here what when where which who why how " +
+  "will would can could should may might must just very really also too if because like um uh er ah oh okay ok yeah " +
+  "one some any all more most much many get got go going went thing things").split(' '));
+
+// ---------- Verb tables (used by grammar rules) ----------
+const IRREGULAR = [
+  ['go','goes','went','gone'], ['come','comes','came','come'], ['eat','eats','ate','eaten'], ['see','sees','saw','seen'],
+  ['do','does','did','done'], ['make','makes','made','made'], ['take','takes','took','taken'], ['get','gets','got','got'],
+  ['have','has','had','had'], ['buy','buys','bought','bought'], ['meet','meets','met','met'], ['give','gives','gave','given'],
+  ['know','knows','knew','known'], ['tell','tells','told','told'], ['think','thinks','thought','thought'], ['bring','brings','brought','brought'],
+  ['say','says','said','said'], ['write','writes','wrote','written'], ['speak','speaks','spoke','spoken'], ['leave','leaves','left','left'],
+  ['feel','feels','felt','felt'], ['find','finds','found','found'], ['run','runs','ran','run'], ['send','sends','sent','sent'],
+  ['teach','teaches','taught','taught'], ['understand','understands','understood','understood'], ['hear','hears','heard','heard'],
+  ['begin','begins','began','begun'], ['forget','forgets','forgot','forgotten'], ['pay','pays','paid','paid'], ['lose','loses','lost','lost'],
+  ['win','wins','won','won'], ['drink','drinks','drank','drunk'], ['drive','drives','drove','driven'], ['sleep','sleeps','slept','slept'],
+  ['wake','wakes','woke','woken'], ['sit','sits','sat','sat'], ['stand','stands','stood','stood'], ['keep','keeps','kept','kept'],
+  ['become','becomes','became','become'], ['choose','chooses','chose','chosen'], ['fall','falls','fell','fallen'], ['catch','catches','caught','caught'],
+  ['sell','sells','sold','sold'], ['spend','spends','spent','spent'], ['build','builds','built','built'], ['break','breaks','broke','broken'],
+  ['grow','grows','grew','grown'], ['wear','wears','wore','worn'], ['fly','flies','flew','flown'], ['swim','swims','swam','swum'], ['sing','sings','sang','sung']
+];
+const REGULAR = ('want need like love live work watch play call talk walk visit help ask answer cook clean move decide try study use enjoy wait stay ' +
+  'open close join learn start finish complete travel look listen stop plan change hope arrive prepare practise practice shop believe').split(' ');
+function third(b) {
+  if (/(s|sh|ch|x|z|o)$/.test(b)) return b + 'es';
+  if (/[^aeiou]y$/.test(b)) return b.slice(0, -1) + 'ies';
+  return b + 's';
+}
+function regPast(b) {
+  const dbl = { stop: 'stopped', plan: 'planned', shop: 'shopped', travel: 'travelled', run: 'runned', swim: 'swimmed', win: 'winned', sit: 'sitted', begin: 'beginned', forget: 'forgetted', get: 'getted' };
+  if (dbl[b]) return dbl[b];
+  if (/e$/.test(b)) return b + 'd';
+  if (/[^aeiou]y$/.test(b)) return b.slice(0, -1) + 'ied';
+  return b + 'ed';
+}
+const V = { base: new Set(), thirdToBase: {}, pastToBase: {}, baseToPast: {}, baseToThird: {}, partOfPast: {}, wrongPast: {} };
+IRREGULAR.forEach(([b, t, p, pp]) => {
+  V.base.add(b); V.thirdToBase[t] = b; V.pastToBase[p] = b; V.baseToPast[b] = p; V.baseToThird[b] = t;
+  if (p !== pp) V.partOfPast[p] = pp;
+  const wrong = regPast(b);
+  if (!['seed', 'singed', 'flied', 'leaved', 'wakeed'].includes(wrong) && wrong !== p) V.wrongPast[wrong] = p;
+});
+REGULAR.forEach(b => {
+  V.base.add(b); const t = third(b), p = regPast(b);
+  V.thirdToBase[t] = b; V.pastToBase[p] = b; V.baseToPast[b] = p; V.baseToThird[b] = t;
+});
+V.pastToBase.traveled = 'travel';
+V.wrongPast.payed = 'paid'; V.wrongPast.flied = 'flew'; V.wrongPast.eated = 'ate'; V.wrongPast.goed = 'went';
+const toBase = w => { const l = w.toLowerCase(); return V.pastToBase[l] || V.thirdToBase[l] || l; };
+const toThird = b => V.baseToThird[b] || third(b);
+
+const IRREG_PAST = IRREGULAR.map(v => v[2]);
+const ALL_PAST = Object.keys(V.pastToBase);
+// Third-person forms that are almost never nouns (safe for "does he likes" style rules).
+const THIRD_SAFE = IRREGULAR.map(v => v[1]).concat('wants likes loves lives enjoys decides believes learns arrives prepares practises practices listens finishes completes helps waits stays joins moves tries'.split(' '));
+// Words before a subject that make a base verb correct ("does he go", "let it go").
+const EXCL = "does|did|do|doesn't|didn't|don't|will|would|can|could|should|must|may|might|to|let|make|made|makes|help|helps|helped|see|saw|seen|watch|watched|hear|heard|cannot|can't|won't|wouldn't|couldn't|shouldn't|is|was|isn't|wasn't|have|had";
+
+// ---------- Rule engine ----------
+// A rule has: id, kind ('grammar' | 'natural'), title, why (plain-English explanation), examples (2), and apply(sentence, hits).
+function keepCase(orig, rep) {
+  if (orig && rep && /[A-Z]/.test(orig[0]) && /[a-z]/.test(rep[0])) return cap(rep);
+  return rep;
+}
+function makeRule(kind, id, title, why, examples, patterns) {
+  return {
+    kind, id, title, why, examples,
+    apply(s, hits) {
+      for (const [re, fn] of patterns) {
+        s = s.replace(re, (...args) => {
+          const m = args[0];
+          const groups = args.slice(1, args.length - 2);
+          let rep = typeof fn === 'function' ? fn(m, ...groups) : fn;
+          if (rep == null || rep.toLowerCase() === m.toLowerCase()) return m;
+          rep = keepCase(m, rep);
+          hits.push({ id, kind, title, why, examples, before: m.trim(), after: rep.trim() });
+          return rep;
+        });
+      }
+      return s;
+    }
+  };
+}
+const G = (...a) => makeRule('grammar', ...a);
+const N = (...a) => makeRule('natural', ...a);
+
+const SUBJ_BE_ING = { "i am": "I have been", "i'm": "I've been", "we are": "we have been", "we're": "we've been", "they are": "they have been",
+  "they're": "they've been", "you are": "you have been", "you're": "you've been", "he is": "he has been", "he's": "he's been",
+  "she is": "she has been", "she's": "she's been", "it is": "it has been", "it's": "it's been" };
+const DURATION = "(?:\\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|a|an|many|few|a few|several|so many)\\s+(?:years?|months?|weeks?|days?|hours?|minutes?)";
+const PLURAL_NOUNS = 'friend brother sister colleague cousin child teacher student book problem idea reason goal city country place project mistake dream hobby subject neighbour neighbor relative uncle aunt son daughter kid movie film song memory habit skill day person man woman class'.split(' ');
+function pluralise(n) {
+  const irr = { child: 'children', person: 'people', man: 'men', woman: 'women' };
+  if (irr[n]) return irr[n];
+  if (/[^aeiou]y$/.test(n)) return n.slice(0, -1) + 'ies';
+  if (/(s|sh|ch|x)$/.test(n)) return n + 'es';
+  return n + 's';
+}
+// Does this word start with a vowel SOUND? (an apple, an hour, a university)
+function needsAn(word) {
+  const w = word.toLowerCase();
+  if (/^(hour|honest|honou?r|heir)/.test(w)) return true;
+  if (/^(uni(?!m|nt|nst|nf|nh)|use|usu|uti|ure|uro|eu|ewe|one|once)/.test(w)) return false;
+  return /^[aeiou]/.test(w);
+}
+const PAST_MARKER = /\b(yesterday|last (?:night|week|weekend|month|year|time|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\w+ (?:days?|weeks?|months?|years?) ago|when i was (?:a )?(?:child|kid|young|little|small))\b/i;
+const NOW_MARKER = /\b(now|today|currently|these days|nowadays|every day|usually|always|often|tomorrow|next)\b/i;
+const DAY_RE = 'monday|tuesday|wednesday|thursday|friday|saturday|sunday';
+
+const GRAMMAR_RULES = [
+  G('wrongPast', 'Irregular past forms', "Some common verbs don't use “-ed” in the past: buy → bought, go → went, teach → taught.",
+    ['I bought a new phone last week.', 'She taught me how to cook.'],
+    [[new RegExp(`\\b(${alt(Object.keys(V.wrongPast))})\\b`, 'gi'), m => V.wrongPast[m.toLowerCase()]]]),
+  G('didPast', "After did / didn't, use the simple verb", "“Did” already shows the past, so the next verb stays simple: didn't go (not didn't went).",
+    ["I didn't go to the office today.", 'Did you see the message?'],
+    [[new RegExp(`\\b(did|didn't|did not)(\\s+(?:i|you|we|they|he|she|it)\\s+|\\s+)(${alt(ALL_PAST)})\\b`, 'gi'), (m, a, mid, v) => a + mid + toBase(v)]]),
+  G('doThird', 'After do / does, use the simple verb', "With does or doesn't, the -s moves to “does”: she doesn't like (not doesn't likes).",
+    ["She doesn't like spicy food.", 'Does he work on Saturdays?'],
+    [[new RegExp(`\\b(does|doesn't|does not|do|don't|do not)(\\s+(?:i|you|we|they|he|she|it)\\s+|\\s+)(${alt(THIRD_SAFE)})\\b`, 'gi'), (m, a, mid, v) => a + mid + toBase(v)]]),
+  G('toPast', 'After “to”, use the simple verb', 'We say want to go, need to buy. The verb after “to” never changes.',
+    ['I want to go home early today.', 'She decided to buy a new laptop.'],
+    [[new RegExp(`\\bto\\s+(${alt(IRREG_PAST.filter(p => !['left', 'found', 'saw', 'fell', 'had', 'got'].includes(p)))})\\b`, 'gi'), (m, v) => 'to ' + toBase(v)]]),
+  G('modal', 'After can / should / will…, use the simple verb', 'Words like can, should, will and must are followed by the simple verb: she can go (not she can goes).',
+    ['He can speak three languages.', 'We should leave now.'],
+    [[new RegExp(`\\b(can|could|should|must|will|would|might|can't|cannot|couldn't|shouldn't|won't|wouldn't|mustn't)\\s+(not\\s+)?(${alt(THIRD_SAFE.concat(IRREG_PAST.filter(p => !['left', 'found', 'saw', 'fell'].includes(p))))})\\b`, 'gi'),
+      (m, md, not, v) => `${md} ${not || ''}${toBase(v)}`]]),
+  G('heDont', "he / she / it + doesn't", "With he, she and it, use doesn't: she doesn't know.",
+    ["He doesn't eat meat.", "It doesn't matter."],
+    [[/\b(he|she|it)\s+(don't|do not)\b/gi, (m, s, d) => `${s} ${d.toLowerCase() === "don't" ? "doesn't" : 'does not'}`]]),
+  G('heHas', 'he / she / it + has', 'With he, she and it, use has: she has a car, he has to work.',
+    ['She has two children.', 'He has to leave at six.'],
+    [[new RegExp(`(?<!\\b(?:${EXCL})\\s+)\\b(he|she|it)\\s+have\\b`, 'gi'), (m, s) => `${s} has`]]),
+  G('heThird', 'he / she / it + verb-s', 'In the present simple, add -s for he, she and it: she works, he goes, it seems.',
+    ['She works in a hospital.', 'He goes to the gym every morning.'],
+    [[new RegExp(`(?<!\\b(?:${EXCL}|if|when|that)\\s+)\\b(he|she)\\s+(go|come|like|want|need|live|work|know|think|say|look|make|take|get|play|watch|eat|feel|love|study|teach|speak|help|believe|try|use|stay|start|cook|drive|leave|enjoy)\\b`, 'gi'),
+      (m, s, v) => `${s} ${toThird(v.toLowerCase())}`]]),
+  G('beAgree', 'Matching am / is / are with the person', 'I am · he/she/it is · you/we/they are. In the past: I/he/she/it was · you/we/they were.',
+    ['They are my colleagues.', 'We were at home all day.'],
+    [[/\bi\s+(is|are)\b/gi, 'I am'],
+     [/\b(you|we|they)\s+is\b/gi, (m, s) => `${s} are`],
+     [/\b(he|she|it)\s+are\b/gi, (m, s) => `${s} is`],
+     [/\b(we|you|they)\s+was\b/gi, (m, s) => `${s} were`],
+     [/(?<!\b(?:if|wish|though|only)\s+)\b(i|he|she|it)\s+were\b/gi, (m, s) => `${s} was`],
+     [/\bpeople\s+(is|was|has)\b/gi, (m, v) => 'people ' + ({ is: 'are', was: 'were', has: 'have' })[v.toLowerCase()]],
+     [/\bthere\s+(is|was)\s+(many|several|two|three|four|five|a few|few|lots of|so many|too many)\b/gi, (m, v, q) => `there ${v.toLowerCase() === 'is' ? 'are' : 'were'} ${q}`]]),
+  G('ableTo', 'can OR be able to (not both)', 'Use either “can” or “be able to”: I can speak, or I am able to speak.',
+    ['I can drive a car.', 'She was able to finish on time.'],
+    [[/\b(can|could)\s+able\s+to\b/gi, (m, c) => c],
+     [/\b(will|shall)\s+able\s+to\b/gi, (m, w) => `${w} be able to`],
+     [/(?<!\b(?:am|is|are|was|were|be|been|'m)\s+)\b(i|you|we|they|he|she)\s+able\s+to\b/gi, (m, s) => `${s} ${({ i: 'am', he: 'is', she: 'is' })[s.toLowerCase()] || 'are'} able to`]]),
+  G('agree', '“Agree” is a verb', 'Say “I agree” or “I don\'t agree”, without am / is / are.',
+    ['I agree with you.', "She doesn't agree with the plan."],
+    [[/\b(i|we|you|they)(?:\s+am|\s+are|'m|'re)\s+(not\s+)?agree\b/gi, (m, s, not) => `${s} ${not ? "don't " : ''}agree`],
+     [/\b(he|she)(?:\s+is|'s)\s+(not\s+)?agree\b/gi, (m, s, not) => `${s} ${not ? "doesn't agree" : 'agrees'}`]]),
+  G('perfectCont', 'Started in the past and still happening', 'For something that started in the past and is still going on, use have/has been + -ing: I have been working here since 2019.',
+    ['I have been learning English for six months.', 'She has been waiting since ten o\'clock.'],
+    [[new RegExp(`\\b(${alt(Object.keys(SUBJ_BE_ING))})\\s+(\\w+ing)\\b(?=[^.?!]{0,50}\\b(?:since\\b|for\\s+(?:the\\s+)?(?:last\\s+|past\\s+)?${DURATION}))`, 'gi'),
+      (m, s, v) => {
+        const have = SUBJ_BE_ING[s.toLowerCase()];
+        const stativePart = { knowing: 'known', understanding: 'understood', wanting: 'wanted', needing: 'needed', believing: 'believed', owning: 'owned', liking: 'liked' }[v.toLowerCase()];
+        return stativePart ? `${have.replace(/ been$/, '').replace(/'s$/, ' has').replace(/'ve$/, ' have')} ${stativePart}`.replace(/'s been$/, '') : `${have} ${v}`;
+      }]]),
+  G('since', '“for” with a length of time', 'Use “for” with a length of time (for two years) and “since” with a starting point (since 2019, since Monday).',
+    ["I've lived here for five years.", "I've worked here since 2020."],
+    [[new RegExp(`\\bsince\\s+((?:the\\s+)?(?:last\\s+|past\\s+)?${DURATION})\\b`, 'gi'), (m, d) => `for ${d}`]]),
+  G('stative', "Some verbs don't use -ing", 'Verbs about knowing, wanting and owning usually stay simple: I know (not I am knowing), I understand, I want.',
+    ['I understand what you mean.', 'She knows the answer.'],
+    [[/\b(i|you|we|they|he|she|it)(?:\s+am|\s+is|\s+are|'m|'s|'re)\s+(knowing|understanding|wanting|needing|believing|owning|belonging|preferring|meaning)\b/gi,
+      (m, s, v) => {
+        const base = { knowing: 'know', understanding: 'understand', wanting: 'want', needing: 'need', believing: 'believe', owning: 'own', belonging: 'belong', preferring: 'prefer', meaning: 'mean' }[v.toLowerCase()];
+        return `${s} ${/^(he|she|it)$/i.test(s) ? toThird(base) : base}`;
+      }]]),
+  G('havePossess', '“have” for owning things', 'When you mean “own”, use have, not having: I have two brothers. (“Having” is fine for actions: having lunch, having fun.)',
+    ['I have a new laptop.', 'She has two sisters.'],
+    [[/\b(i|you|we|they|he|she)(?:\s+am|\s+is|\s+are|'m|'s|'re)\s+having\s+((?:a|an|one|two|three|four|five|many|no|some)\s+)?(car|bike|house|flat|brothers?|sisters?|sons?|daughters?|children|kids|laptop|phone|mobile|computer|pets?|dogs?|cats?|doubts?)\b/gi,
+      (m, s, q, n) => `${s} ${/^(he|she)$/i.test(s) ? 'has' : 'have'} ${q || ''}${n}`]]),
+  G('haveDone', 'have / has / had + third form', 'After have, has or had, use the third form of the verb: have gone, has seen, had done.',
+    ['I have seen that movie twice.', 'She has gone to the market.'],
+    [[new RegExp(`\\b(have|has|had|'ve)\\s+(${alt(Object.keys(V.partOfPast))})\\b`, 'gi'), (m, h, v) => `${h} ${V.partOfPast[v.toLowerCase()]}`]]),
+  G('comparative', "Don't double the comparison", 'Better, easier and bigger already mean “more”, so say “better”, not “more better”.',
+    ['This phone is better than my old one.', 'The second test was easier.'],
+    [[/\bmore\s+(better|worse|easier|harder|bigger|smaller|faster|slower|cheaper|happier|older|younger|greater|higher|lower|stronger|longer|shorter|busier|earlier)\b/gi, (m, a) => a],
+     [/\bmost\s+(best|worst)\b/gi, (m, a) => a]]),
+  G('doubleNeg', 'One negative is enough', "In standard English, use one negative: I don't know anything (not I don't know nothing).",
+    ["I didn't buy anything.", "There isn't anyone at home."],
+    [[/\b(don't|doesn't|didn't|can't|won't|never|not)\s+((?:\w+\s+){0,2}?)(nothing|nobody|nowhere|no one)\b/gi,
+      (m, n, mid, w) => `${n} ${mid}${({ nothing: 'anything', nobody: 'anybody', nowhere: 'anywhere', 'no one': 'anyone' })[w.toLowerCase()]}`],
+     [/\b(don't|doesn't|didn't|can't|won't)\s+(\w+)\s+no\b(?!\s+(?:longer|more|one|matter))/gi, (m, n, v) => `${n} ${v} any`]]),
+  G('discuss', '“discuss”, without “about”', '“Discuss” already includes the meaning of “about”: we discussed the plan.',
+    ['We discussed the budget.', "Let's discuss your idea tomorrow."],
+    [[/\b(discuss|discussed|discussing|discusses)\s+about\b/gi, (m, v) => v]]),
+  G('explainTo', 'explain something TO someone', 'We say “explain it to me” or “explain to me”, not “explain me”.',
+    ['Can you explain this to me?', 'She explained the rules to us.'],
+    [[/\b(explain|explained|explaining|explains)\s+(me|him|her|us|them)\b/gi, (m, v, p) => `${v} to ${p}`]]),
+  G('returnBack', '“return”, without “back”', '“Return” already means “come back” or “give back”.',
+    ['I returned home at nine.', 'Please return the book on Monday.'],
+    [[/\b(return|returned|returning|returns)\s+back\b/gi, (m, v) => v]]),
+  G('copeWith', '“cope with”', 'The phrase is “cope with” (no “up”).',
+    ['I find it hard to cope with stress.', 'She coped with the pressure well.'],
+    [[/\bcope(d|s)?\s+up\s+with\b/gi, (m, e) => `cope${e || ''} with`]]),
+  G('sayTell', 'say vs tell', 'Use “tell” when you mention the person (she told me). Use “say” without the person (she said that…).',
+    ['He told me the news.', 'She said she was tired.'],
+    [[/\b(said|say|says)\s+(me|him|her|us|them)\b/gi, (m, v, p) => `${({ said: 'told', say: 'tell', says: 'tells' })[v.toLowerCase()]} ${p}`]]),
+  G('marriedTo', '“married to”', 'We say “married to someone” and “engaged to someone”.',
+    ['She is married to a teacher.', 'He got engaged to his college friend.'],
+    [[/\b(married|engaged)\s+with\b/gi, (m, v) => `${v} to`]]),
+  G('goodAt', 'good AT something', 'For skills, use “at”: good at cooking, bad at maths.',
+    ["I'm good at solving problems.", "He's not very good at drawing."],
+    [[/\b(good|bad|better|best|great|excellent|poor|weak|strong)\s+in\s+(english|maths|math|cooking|sports|drawing|singing|dancing|coding|programming|writing|speaking|\w+ing)\b/gi, (m, a, s) => `${a} at ${s}`]]),
+  G('interestedIn', '“interested in”', 'The phrase is always “interested in”.',
+    ["I'm interested in photography.", 'Are you interested in this job?'],
+    [[/\binterested\s+(on|for|about)\b/gi, 'interested in']]),
+  G('dependOn', '“depend on”', 'The phrase is “depend on” (not depend of).',
+    ['It depends on the weather.', 'Our plans depend on the budget.'],
+    [[/\b(depend|depends|depended|depending)\s+of\b/gi, (m, v) => `${v} on`]]),
+  G('listenTo', '“listen TO” something', 'We always say “listen to”: listen to music, listen to me.',
+    ['I listen to music on the bus.', 'Please listen to the teacher.'],
+    [[/\b(listen|listens|listening|listened)\s+(?!to\b)(music|songs?|the radio|radio|podcasts?|him|her|me|them|us|my \w+|the teacher)\b/gi, (m, v, o) => `${v} to ${o}`]]),
+  G('reach', '“reach” a place (no “to”)', '“Reach” is followed directly by the place: I reached home, we reached the station.',
+    ['I reached the office at nine.', 'Call me when you reach home.'],
+    [[/\b(reach|reached|reaches|reaching)\s+to\s+(?=(?:the|my|our|his|her|their|home|office|school|college|work|there|here)\b)/gi, (m, v) => `${v} `]]),
+  G('angryWith', '“angry with” someone', 'We are angry or upset WITH a person.',
+    ['She was angry with me for being late.', "Don't be upset with him."],
+    [[/\b(angry|upset|mad)\s+on\b/gi, (m, a) => `${a} with`]]),
+  G('onDay', '“on” with days', 'Use “on” with days: on Monday, on weekends.',
+    ['I play cricket on Sundays.', 'We relax on the weekend.'],
+    [[new RegExp(`\\bin\\s+((?:${DAY_RE})s?)\\b`, 'gi'), (m, d) => `on ${cap(d.toLowerCase())}`],
+     [/\bin\s+(the\s+)?weekends?\b/gi, m => /weekends/i.test(m) ? 'on weekends' : 'on the weekend']]),
+  G('graduate', '“graduate from”', 'In most English-speaking countries, “pass out” means to faint. For finishing college, say “graduate from”.',
+    ['I graduated from college in 2018.', 'She will graduate from university next year.'],
+    [[/\bpass(ed)?\s+out\s+(?:from|of)\s+/gi, (m, ed) => ed ? 'graduated from ' : 'graduate from ']]),
+  G('oneOf', 'one of my friendS (plural)', 'After “one of my / one of the”, use the plural: one of my friends, one of the reasons.',
+    ['One of my friends is a doctor.', "That's one of the reasons I moved."],
+    [[new RegExp(`\\b(one|each|some|many|several|most|all|none|any)\\s+of\\s+(my|the|our|his|her|their|your|these|those)\\s+((?:best|close|good|old|favourite|favorite|new|younger|older|elder)\\s+)?(${alt(PLURAL_NOUNS)})\\b`, 'gi'),
+      (m, q, d, adj, n) => `${q} of ${d} ${adj || ''}${pluralise(n.toLowerCase())}`]]),
+  G('uncountable', 'Words with no plural', 'Some words have no plural form: information, advice, equipment, feedback, homework.',
+    ['Thanks for the information.', 'She gave me some good advice.'],
+    [[/\b(informations|advices|furnitures|equipments|luggages|baggages|feedbacks|homeworks|knowledges|softwares|sceneries|jewelleries|stuffs)\b/gi,
+      m => m.toLowerCase().replace(/ies$/, 'y').replace(/s$/, '')]]),
+  G('muchMany', '“many” for things you can count', 'Use “many” with things you can count (many people, many friends) and “much” with things you can\'t (much time, much money).',
+    ['There were many people at the party.', "I don't have much time today."],
+    [[/\bmuch\s+(people|friends|things|problems|books|times|places|students|questions|cars|days|years|hours|mistakes|ideas|countries)\b/gi, (m, n) => `many ${n}`]]),
+  G('theBoth', '“both” (no “the”)', 'Say “both of them” or “both my parents”, not “the both”.',
+    ['Both of my parents are teachers.', 'I like both options.'],
+    [[/\bthe\s+both\b/gi, 'both']]),
+  G('meAnd', '“My friend and I” as the subject', 'When you are the subject, say “My friend and I went…”, not “Me and my friend went…”. It\'s polite to put yourself last.',
+    ['My sister and I went shopping.', 'My friends and I play cricket on Sundays.'],
+    [[/^me\s+and\s+((?:my\s+)?\w+)\s+(?=(?:went|go|are|were|was|have|had|will|did|do|played|play|met|like|love|live|lived|visited|used|started|decided)\b)/i, (m, who) => `${who} and I `]]),
+  G('wouldHave', '“would have”, not “would of”', '“Would of” is a spelling of how it sounds. The correct form is “would have” (would\'ve).',
+    ['I would have called you.', 'You should have told me.'],
+    [[/\b(would|could|should|must|might)\s+of\b/gi, (m, v) => `${v} have`]]),
+  G('myself', 'Introducing yourself', '“Myself Ravi” is common in Indian English, but most English speakers say “My name is Ravi” or “I\'m Ravi”.',
+    ["Hi, I'm Priya. Nice to meet you.", 'My name is Arjun, and I work in sales.'],
+    [[/^myself\s+is\s+/i, 'my name is '],
+     [/^myself\s+(?!am\b|is\b|and\b|i\b|also\b|too\b)([a-z]+)\b/i, (m, name) => `my name is ${cap(name)}`]]),
+  G('pastTense', 'Past events need the past tense', 'When you talk about yesterday, last week or “two years ago”, use the past form: Yesterday I went…, Last year we visited…',
+    ['Yesterday I went to the market.', 'Last weekend we watched a movie.'],
+    [[/^.*$/, s => {
+      if (!PAST_MARKER.test(s) || NOW_MARKER.test(s)) return s;
+      return s.replace(new RegExp(`(?<!\\b(?:${EXCL}|will|to)\\s+)\\b(i|we|they|he|she|you)\\s+(${alt([...V.base].concat(Object.keys(V.thirdToBase)))})\\b`, 'gi'),
+        (m, subj, v) => `${subj} ${V.baseToPast[toBase(v)] || v}`)
+        .replace(/\b(i|he|she|it)\s+(am|is)\b(?!\s+going)/gi, (m, subj) => `${subj} was`)
+        .replace(/\b(we|they|you)\s+are\b(?!\s+going)/gi, (m, subj) => `${subj} were`);
+    }]]),
+  G('article', '“a” or “an”', 'Use “an” before a vowel SOUND (an apple, an hour) and “a” before a consonant sound (a car, a university).',
+    ['I ate an apple.', "She's studying at a university in Pune."],
+    [[/\b(a|an)\s+([a-zA-Z][\w'-]*)/g, (m, art, w) => {
+      if (w.length < 2 || /^[A-Z]{2,}$/.test(w)) return m; // skip acronyms
+      const want = needsAn(w) ? 'an' : 'a';
+      return art.toLowerCase() === want ? m : `${want} ${w}`;
+    }]])
+];
+
+const STRONG = { big: 'huge', small: 'tiny', good: 'great', bad: 'terrible', happy: 'thrilled', sad: 'really upset', tired: 'exhausted', hungry: 'starving',
+  scared: 'terrified', angry: 'furious', cold: 'freezing', hot: 'boiling', interesting: 'fascinating', beautiful: 'stunning', important: 'essential',
+  difficult: 'really hard', easy: 'really easy', surprised: 'amazed', funny: 'hilarious', clean: 'spotless', dirty: 'filthy' };
+const CONTRACT = [["I am", "I'm"], ["you are", "you're"], ["we are", "we're"], ["they are", "they're"], ["he is", "he's"], ["she is", "she's"],
+  ["it is", "it's"], ["that is", "that's"], ["there is", "there's"], ["what is", "what's"], ["do not", "don't"], ["does not", "doesn't"],
+  ["did not", "didn't"], ["is not", "isn't"], ["are not", "aren't"], ["was not", "wasn't"], ["were not", "weren't"], ["cannot", "can't"],
+  ["can not", "can't"], ["will not", "won't"], ["would not", "wouldn't"], ["should not", "shouldn't"], ["could not", "couldn't"],
+  ["I have been", "I've been"], ["I will", "I'll"], ["I would like", "I'd like"], ["let us", "let's"], ["have not been", "haven't been"]];
+
+const NATURAL_RULES = [
+  N('accordingMe', '“In my opinion” for your own view', '“According to…” is used for other people or sources (according to the news). For yourself, say “in my opinion” or “I think”.',
+    ['In my opinion, this is the best option.', 'I think we should wait.'],
+    [[/\baccording\s+to\s+me\b/gi, 'in my opinion']]),
+  N('doubt', '“question” instead of “doubt”', 'In Indian English, “doubt” often means “question”. Elsewhere, “doubt” means you think something isn\'t true. Say “I have a question”.',
+    ['I have a question about the homework.', 'Can I ask you something?'],
+    [[/\b(i|we|you)\s+(have|had)\s+(a|one|some|a few|few)\s+(doubts?)\b/gi, (m, s, h, q, d) => `${s} ${h} ${q === 'one' ? 'a' : q} ${d.endsWith('s') ? 'questions' : 'question'}`]]),
+  N('needful', 'Plain alternatives to office phrases', '“Do the needful” and “kindly” sound very formal. “Please do what\'s needed” or “Could you…?” sounds friendlier.',
+    ['Could you please send me the file?', "Please do what's needed."],
+    [[/\bdo\s+the\s+needful\b/gi, "do what's needed"], [/\bkindly\b/gi, 'please'], [/\byour\s+good\s+name\b/gi, 'your name'], [/\bout\s+of\s+station\b/gi, 'out of town'],
+     [/\bprepone(d|s)?\b/gi, (m, e) => (e === 'd' ? 'brought forward' : e === 's' ? 'brings forward' : 'bring forward')],
+     [/\brevert\s+back\b/gi, 'reply']]),
+  N('itself', 'Emphasis without “itself”', 'Using “itself” for emphasis (today itself) is Indian English. Others say “right now”, “right here”, or just “today”.',
+    ['I need it today.', 'Can you call me right now?'],
+    [[/\b(today|now|here|tomorrow)\s+itself\b/gi, (m, w) => ({ today: 'today', now: 'right now', here: 'right here', tomorrow: 'tomorrow' })[w.toLowerCase()]]]),
+  N('tooGood', '“really” instead of “too” for good things', '“Too” means more than you want (too hot to drink). For something positive, say “really” or “so”.',
+    ['The food was really good.', 'Your house is so beautiful.'],
+    [[/\btoo\s+(good|nice|beautiful|happy|great|tasty|delicious|sweet|cute|kind)\b/gi, (m, a) => `really ${a}`]]),
+  N('veryVery', 'Stronger words instead of “very + adjective”', 'One strong word often sounds more natural than “very + adjective”: very tired → exhausted.',
+    ["I'm exhausted after work.", 'The movie was hilarious.'],
+    [[/\bvery\s+very\b/gi, 'really'],
+     [new RegExp(`\\bvery\\s+(${alt(Object.keys(STRONG))})\\b`, 'gi'), (m, a) => STRONG[a.toLowerCase()]]]),
+  N('contract', 'Short forms (contractions)', "In everyday speech, people use short forms: I'm, don't, it's. They sound relaxed and natural.",
+    ["I'm not sure, but I think it's fine.", "We don't have time today."],
+    CONTRACT.map(([full, short]) => [new RegExp(`\\b${full.replace(/ /g, '\\s+')}\\b(?=\\s+[a-z])`, 'gi'), short]))
+];
+// Article check re-run silently after natural rewrites ("a very important" → "an essential").
+const ARTICLE_RULE = GRAMMAR_RULES.find(r => r.id === 'article');
+
+// ---------- Formatting ----------
+const PROPER = { english: 'English', hindi: 'Hindi', telugu: 'Telugu', tamil: 'Tamil', kannada: 'Kannada', malayalam: 'Malayalam', marathi: 'Marathi',
+  bengali: 'Bengali', gujarati: 'Gujarati', punjabi: 'Punjabi', urdu: 'Urdu', india: 'India', indian: 'Indian', french: 'French', german: 'German',
+  monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
+  mondays: 'Mondays', tuesdays: 'Tuesdays', wednesdays: 'Wednesdays', thursdays: 'Thursdays', fridays: 'Fridays', saturdays: 'Saturdays', sundays: 'Sundays' };
+function formatSentence(s) {
+  s = String(s || '').replace(/\s+/g, ' ').replace(/\s+([,.!?;:])/g, '$1').trim();
+  if (!s) return s;
+  s = s.replace(/\bi\b(?=$|[\s,.!?;:'’])/g, 'I');
+  s = s.replace(/\b[a-z]+\b/g, w => PROPER[w] || w);
+  s = cap(s);
+  if (!/[.!?]$/.test(s)) s += /^(what|where|when|why|how|who|which|do|does|did|can|could|would|will|should|is|are|am|was|were|have|has)\b/i.test(s) && !/^(what|where|when|how|who)\b.*\b(i|we|they|he|she)\s+(think|know|mean|said|told|remember)\b/i.test(s) && s.split(' ').length < 18 ? '?' : '.';
+  return s;
+}
+function splitSentences(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s+/).filter(Boolean);
+}
+// Remove hesitation sounds and accidental repeated words ("I I went") from speech.
+const HESITATIONS = ['um', 'umm', 'uh', 'uhh', 'uhm', 'er', 'erm', 'ah', 'hmm', 'mm', 'mhm'];
+function cleanSpeech(s) {
+  return String(s || '')
+    .replace(new RegExp(`(^|\\s)(?:${HESITATIONS.join('|')})(?=[\\s,.!?]|$)[,]?`, 'gi'), '$1')
+    .replace(/,?\s*\b(you know|basically)\b,?/gi, ' ')
+    .replace(/\b(\w+)(\s+\1\b)+/gi, (m, w) => (/^(that|had|very|so|bye|no)$/i.test(w) ? m : w))
+    .replace(/\s+/g, ' ').trim();
+}
+
+// Apply rule list to one sentence; returns new text, pushes hits.
+function applyRules(rules, s, hits) {
+  for (const r of rules) s = r.apply(s, hits);
+  return s;
+}
+
+/**
+ * Improve text sentence by sentence.
+ * Returns { original, improved, natural, hits }.
+ * improved = grammar rules only; natural = improved + natural-English rules.
+ */
+function improveText(text, opts = {}) {
+  const source = opts.fromSpeech ? cleanSpeech(text) : String(text || '').trim();
+  const sentences = opts.segments ? opts.segments.map(cleanSpeech).filter(Boolean) : splitSentences(source);
+  const hits = [];
+  const improved = [], natural = [];
+  for (const raw of sentences) {
+    const g = applyRules(GRAMMAR_RULES, raw, hits);
+    improved.push(formatSentence(g));
+    const nHits = [];
+    let n = applyRules(NATURAL_RULES, g, nHits);
+    n = ARTICLE_RULE.apply(n, []);
+    hits.push(...nHits);
+    natural.push(formatSentence(n));
+  }
+  if (opts.typed && /(^|\s)i(\s|'|$)/.test(source)) {
+    hits.push({ id: 'capitalI', kind: 'grammar', title: 'Capital “I”', why: 'The word “I” is always written with a capital letter.',
+      examples: ['I think I can do it.', "Yesterday I met an old friend."], before: 'i', after: 'I' });
+  }
+  return { original: source, improved: improved.join(' '), natural: natural.join(' '), hits };
+}
+// Group hits by rule for display.
+function groupHits(hits) {
+  const map = new Map();
+  for (const h of hits) {
+    if (!map.has(h.id)) map.set(h.id, { ...h, pairs: [] });
+    const g = map.get(h.id);
+    if (!g.pairs.some(p => p.before.toLowerCase() === h.before.toLowerCase())) g.pairs.push({ before: h.before, after: h.after });
+  }
+  return [...map.values()];
+}
+
+// ---------- Shadowing comparison ----------
+const CONTRACTIONS = { "i'm": 'i am', "you're": 'you are', "we're": 'we are', "they're": 'they are', "he's": 'he is', "she's": 'she is', "it's": 'it is',
+  "that's": 'that is', "there's": 'there is', "what's": 'what is', "let's": 'let us', "i've": 'i have', "you've": 'you have', "we've": 'we have',
+  "they've": 'they have', "i'll": 'i will', "you'll": 'you will', "we'll": 'we will', "they'll": 'they will', "it'll": 'it will', "i'd": 'i would',
+  "you'd": 'you would', "we'd": 'we would', "they'd": 'they would', "don't": 'do not', "doesn't": 'does not', "didn't": 'did not', "can't": 'can not',
+  cannot: 'can not', "won't": 'will not', "wouldn't": 'would not', "shouldn't": 'should not', "couldn't": 'could not', "isn't": 'is not',
+  "aren't": 'are not', "wasn't": 'was not', "weren't": 'were not', "haven't": 'have not', "hasn't": 'has not', "doesn't": 'does not' };
+const NUMS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+// Spelling-neutral key so US/UK spellings match (realise/realize, colour/color).
+const spellKey = w => w.replace(/our/g, 'or').replace(/is(e|ed|es|ing)$/, 'iz$1').replace(/tre$/, 'ter').replace(/ll(ed|ing)$/, 'l$1');
+/** Split text into display words, each with one or more comparison keys. */
+function compareUnits(text) {
+  const src = String(text || '').replace(/[’‘]/g, "'").replace(/\b(\d{1,2}):00\b/g, "$1 o'clock").replace(/\b(\d{1,2})\s*(a\.?m\.?|p\.?m\.?)/gi, '$1');
+  const raw = src.match(/[A-Za-z0-9]+(?:'[A-Za-z]+)?/g) || [];
+  return raw.map(w => {
+    let l = w.toLowerCase();
+    if (l === "o'clock") return { word: w, keys: ['oclock'] };
+    if (/^\d+$/.test(l) && +l <= 20) l = NUMS[+l];
+    const exp = CONTRACTIONS[l] || l;
+    return { word: w, keys: exp.split(' ').map(spellKey) };
+  });
+}
+/** Word-level edit-distance alignment. Returns ops: match / sub / del (missing) / ins (added). */
+function alignWords(a, b) {
+  const n = a.length, m = b.length;
+  const d = Array.from({ length: n + 1 }, (_, i) => Array.from({ length: m + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++) {
+    d[i][j] = Math.min(d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1), d[i - 1][j] + 1, d[i][j - 1] + 1);
+  }
+  const ops = [];
+  let i = n, j = m;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i - 1] === b[j - 1] && d[i][j] === d[i - 1][j - 1]) { ops.push({ type: 'match', i: i - 1, j: j - 1 }); i--; j--; }
+    else if (i > 0 && j > 0 && d[i][j] === d[i - 1][j - 1] + 1) { ops.push({ type: 'sub', i: i - 1, j: j - 1 }); i--; j--; }
+    else if (i > 0 && d[i][j] === d[i - 1][j] + 1) { ops.push({ type: 'del', i: i - 1 }); i--; }
+    else { ops.push({ type: 'ins', j: j - 1 }); j--; }
+  }
+  return ops.reverse();
+}
+const FUNCTION_WORDS = new Set('a an the to of in on at for and or but is am are was were be it i you we they he she my your our do does did not so that this with as by from will would can could have has had'.split(' '));
+
+/**
+ * Compare a model sentence with what speech recognition heard.
+ * Returns per-word statuses, a word-match percentage, and focused tips.
+ */
+function compareShadow(model, heard) {
+  const mu = compareUnits(model), hu = compareUnits(heard);
+  const mk = [], mOwner = [], hk = [], hOwner = [];
+  mu.forEach((u, idx) => u.keys.forEach(k => { mk.push(k); mOwner.push(idx); }));
+  hu.forEach((u, idx) => u.keys.forEach(k => { hk.push(k); hOwner.push(idx); }));
+  const ops = alignWords(mk, hk);
+
+  const mState = mu.map(() => ({ ok: 0, bad: 0, heard: [] }));
+  const hState = hu.map(() => 'added');
+  let matchedKeys = 0;
+  for (const op of ops) {
+    if (op.type === 'match') { mState[mOwner[op.i]].ok++; hState[hOwner[op.j]] = 'ok'; matchedKeys++; }
+    else if (op.type === 'sub') { mState[mOwner[op.i]].bad++; mState[mOwner[op.i]].heard.push(hk[op.j]); if (hState[hOwner[op.j]] !== 'ok') hState[hOwner[op.j]] = 'changed'; }
+    else if (op.type === 'del') { mState[mOwner[op.i]].bad++; }
+  }
+  const modelWords = mu.map((u, idx) => {
+    const s = mState[idx];
+    const status = s.bad === 0 ? 'ok' : s.heard.length ? 'changed' : s.ok > 0 ? 'changed' : 'missing';
+    return { word: u.word, status, heard: s.heard.join(' ') };
+  });
+  const heardWords = hu.map((u, idx) => ({ word: u.word, status: hState[idx] }));
+  const pct = mk.length ? Math.round((matchedKeys / mk.length) * 100) : 0;
+  return { pct, modelWords, heardWords, tips: shadowTips(modelWords, heardWords, pct) };
+}
+function shadowTips(modelWords, heardWords, pct) {
+  const tips = [];
+  const missing = modelWords.filter(w => w.status === 'missing');
+  const changed = modelWords.filter(w => w.status === 'changed');
+  const added = heardWords.filter(w => w.status === 'added');
+  const phraseAround = idx => modelWords.slice(Math.max(0, idx - 1), idx + 2).map(w => w.word).join(' ');
+  if (pct === 100 && !added.length) {
+    tips.push('Every word was recognised. Next step: press “Hide text”, listen once, and repeat from memory. That trains you to hold whole phrases in your head, which is what fluent speaking needs.');
+    tips.push('When that feels easy, move to the next sentence or the next level.');
+    return tips;
+  }
+  const changedContent = changed.filter(w => !FUNCTION_WORDS.has(w.word.toLowerCase()));
+  if (changedContent.length) {
+    const w = changedContent[0];
+    const idx = modelWords.indexOf(w);
+    tips.push(`Chrome heard “${w.heard || '?'}” where the sentence has “${w.word}”. Press “Listen slowly”, say “${w.word}” on its own three times, then inside the phrase “${phraseAround(idx)}”. (This can also be a recognition error, not your mistake.)`);
+  }
+  // Missing words at the end usually mean the speaker stopped early.
+  let tail = 0;
+  for (let k = modelWords.length - 1; k >= 0 && modelWords[k].status === 'missing'; k--) tail++;
+  if (tail >= 2) {
+    const cut = Math.ceil(modelWords.length / 2);
+    tips.push(`The end of the sentence (“${modelWords.slice(-tail).map(w => w.word).join(' ')}”) wasn't recognised; you may have stopped early. Practise it in two chunks: “${modelWords.slice(0, cut).map(w => w.word).join(' ')}” | “${modelWords.slice(cut).map(w => w.word).join(' ')}”, then join them.`);
+  }
+  const missingContent = missing.filter(w => !FUNCTION_WORDS.has(w.word.toLowerCase()));
+  if (missingContent.length && tips.length < 2) {
+    const idx = modelWords.indexOf(missingContent[0]);
+    tips.push(`These words weren't recognised: ${missingContent.slice(0, 4).map(w => `“${w.word}”`).join(', ')}. Listen slowly, then repeat just the phrase “${phraseAround(idx)}” until it flows.`);
+  }
+  const missingSmall = missing.filter(w => FUNCTION_WORDS.has(w.word.toLowerCase()));
+  if (missingSmall.length && tips.length < 2) {
+    const idx = modelWords.indexOf(missingSmall[0]);
+    tips.push(`Small words like ${[...new Set(missingSmall.map(w => `“${w.word.toLowerCase()}”`))].slice(0, 3).join(', ')} weren't recognised. Native speakers say them quickly and softly, but they are still there. Try linking them: “${phraseAround(idx)}”.`);
+  }
+  if (added.length && tips.length < 2) {
+    tips.push(`Extra words were recognised (${added.slice(0, 4).map(w => `“${w.word}”`).join(', ')}). Try to repeat exactly what you hear, with no added or repeated words.`);
+  }
+  if (!tips.length) tips.push('Close match. Listen once more and copy the rhythm: which words are stressed, and where the speaker pauses.');
+  return tips.slice(0, 2);
+}
+
+// ---------- Free-speech analysis ----------
+const FILLER_PHRASES = ['you know', 'i mean', 'basically', 'actually', 'literally'];
+const DEVELOPMENT = [
+  { id: 'opinion', label: 'Main idea or opinion', re: /\b(i think|i believe|in my opinion|i feel that|personally|for me|i'd say|my favou?rite)\b/i,
+    tip: 'Start with your main idea: “Personally, I think…”, “For me, the most important thing is…”' },
+  { id: 'reason', label: 'A reason (why?)', re: /\b(because|since|so that|that's why|that is why|the reason|as a result|which means)\b/i,
+    tip: 'Explain why: “The main reason is that…”, “That\'s why…”' },
+  { id: 'example', label: 'An example or story', re: /\b(for example|for instance|such as|one time|once|i remember|last (?:week|month|year|time)|when i was)\b/i,
+    tip: 'Give an example: “For example, last month I…”, “I remember one time when…”' },
+  { id: 'feeling', label: 'How you felt', re: /\b(felt|feel|feeling|happy|sad|nervous|excited|proud|scared|worried|angry|grateful|relieved|frustrated|confident|stressed|enjoyed|enjoy|loved|upset|surprised)\b/i,
+    tip: 'Say how you felt: “At that moment I felt…”, “Honestly, it made me feel…”' },
+  { id: 'lesson', label: 'What you learned or concluded', re: /\b(learn|learned|learnt|realised|realized|understood|taught me|since then|next time|lesson|now i|in the end|overall|to sum up)\b/i,
+    tip: 'Finish with a lesson or conclusion: “What I learned from this is…”, “Since then, I always…”' },
+  { id: 'sequence', label: 'Linking words (first, then, after that)', re: /\b(first|firstly|then|after that|finally|later|next|another thing|also|on the other hand|however)\b/i,
+    tip: 'Organise ideas: “First…, then…, after that…, finally…”, “Another thing is…”' }
+];
+const VOCAB_ALTS = {
+  good: ['helpful', 'enjoyable', 'useful', 'excellent'], nice: ['pleasant', 'lovely', 'friendly', 'kind'], bad: ['unpleasant', 'disappointing', 'stressful', 'awful'],
+  thing: ['part', 'aspect', 'idea', 'situation'], things: ['activities', 'details', 'ideas', 'tasks'], stuff: ['things', 'items', 'tasks'],
+  big: ['huge', 'large', 'major', 'serious'], small: ['tiny', 'minor', 'little'], happy: ['glad', 'pleased', 'delighted', 'proud'],
+  sad: ['upset', 'disappointed', 'down'], interesting: ['fascinating', 'surprising', 'eye-opening'], important: ['essential', 'key', 'necessary'],
+  difficult: ['challenging', 'tough', 'tricky'], problem: ['issue', 'challenge', 'difficulty'], lot: ['plenty', 'a great deal', 'loads'],
+  very: ['really', 'extremely', 'or a stronger adjective'], really: ['truly', 'genuinely', 'or drop it'], beautiful: ['stunning', 'lovely', 'gorgeous'],
+  think: ['believe', 'feel', 'guess', 'suppose'], like: ['enjoy', 'love', 'am into', 'am fond of'], get: ['receive', 'become', 'reach', 'buy']
+};
+
+/**
+ * Analyse a free-speaking transcript.
+ * input: { transcript, segments?, seconds?, goalSeconds, typed?, silence?: { longest, longCount } }
+ */
+function analyseSpeech(input) {
+  const transcript = String(input.transcript || '').trim();
+  const toks = words(transcript);
+  const count = toks.length;
+  const seconds = input.typed ? null : input.seconds || 0;
+  const minutes = seconds ? seconds / 60 : 0;
+  const wpm = minutes > 0.1 ? Math.round(count / minutes) : null;
+
+  // Filler words (hesitations + filler phrases + "like" used as filler)
+  const fillers = {};
+  const add = (k, n = 1) => { if (n) fillers[k] = (fillers[k] || 0) + n; };
+  toks.forEach(t => { if (HESITATIONS.includes(t)) add(t.replace(/(.)\1+$/, '$1')); });
+  const lowerText = toks.join(' ');
+  FILLER_PHRASES.forEach(p => add(p, (lowerText.match(new RegExp(`\\b${p}\\b`, 'g')) || []).length));
+  add('kind of / sort of', (lowerText.match(/(?<!\b(?:what|this|that|a|the|any|some|every|which|one|different|same)\s)\b(kind|sort) of\b/g) || []).length);
+  const LIKE_PREV = new Set(['was', 'is', 'were', 'are', 'am', "i'm", "he's", "she's", "it's", "they're", "we're", 'and', 'but', 'so', 'just', 'um', 'uh', 'like', 'then', 'oh', 'yeah', 'know']);
+  toks.forEach((t, i) => { if (t === 'like' && (i === 0 || LIKE_PREV.has(toks[i - 1]))) add('like (as a filler)'); });
+  const fillerTotal = Object.values(fillers).reduce((a, b) => a + b, 0);
+
+  // Repetition
+  const freq = {};
+  toks.forEach(t => { if (!STOPWORDS.has(t) && t.length > 2 && !HESITATIONS.includes(t)) freq[t] = (freq[t] || 0) + 1; });
+  const repeatedWords = Object.entries(freq).filter(([w, n]) => n >= 3 && n / Math.max(count, 1) >= 0.02).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const grams = n => {
+    const f = {};
+    for (let i = 0; i + n <= toks.length; i++) {
+      const g = toks.slice(i, i + n);
+      if (g.every(w => STOPWORDS.has(w)) || g.some(w => HESITATIONS.includes(w))) continue;
+      const k = g.join(' ');
+      f[k] = (f[k] || 0) + 1;
+    }
+    return f;
+  };
+  const tri = Object.entries(grams(3)).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]);
+  const bi = Object.entries(grams(2)).filter(([k, n]) => n >= 3 && !tri.some(([t]) => t.includes(k))).sort((a, b) => b[1] - a[1]);
+  const repeatedPhrases = tri.concat(bi).slice(0, 6);
+  const stutters = (transcript.toLowerCase().match(/\b(\w+)\s+\1\b/g) || []).filter(m => !/^(that|had|very|so)\s/.test(m)).length;
+
+  // Vocabulary variety: share of different words in each 40-word window (moving average)
+  let variety = null;
+  if (count >= 15) {
+    const W = Math.min(40, count);
+    let sum = 0, windows = 0;
+    for (let i = 0; i + W <= count; i += 5) { sum += new Set(toks.slice(i, i + W)).size / W; windows++; }
+    variety = Math.round((sum / windows) * 100);
+  }
+
+  // Answer development
+  const development = DEVELOPMENT.map(d => ({ ...d, found: d.re.test(transcript) }));
+  const andCount = toks.filter(t => t === 'and').length;
+  const andRate = count ? (andCount / count) * 100 : 0;
+
+  // Grammar and natural-English suggestions (rule-based)
+  const improved = improveText(transcript, { fromSpeech: !input.typed, segments: input.segments && input.segments.length ? input.segments : null });
+  const grammarGroups = groupHits(improved.hits.filter(h => h.kind === 'grammar'));
+  const naturalGroups = groupHits(improved.hits.filter(h => h.kind === 'natural' && h.id !== 'contract'));
+
+  // Vocabulary suggestions for overused simple words
+  const vocab = Object.entries(VOCAB_ALTS)
+    .map(([w, alts]) => ({ word: w, n: toks.filter(t => t === w).length, alts }))
+    .filter(v => v.n >= (v.word === 'like' || v.word === 'think' || v.word === 'really' ? 4 : 2))
+    .sort((a, b) => b.n - a.n).slice(0, 5);
+
+  const result = {
+    transcript, count, seconds, wpm, fillers, fillerTotal, repeatedWords, repeatedPhrases, stutters, variety, development,
+    andCount, andRate, grammarGroups, naturalGroups, vocab, corrected: improved.improved, natural: improved.natural,
+    silence: input.silence || null, goalSeconds: input.goalSeconds || 0, typed: !!input.typed
+  };
+  result.suggestions = speakSuggestions(result);
+  result.isShort = !input.typed ? (seconds < result.goalSeconds * 0.5 || count < 40) : count < 60;
+  return result;
+}
+
+/** Choose the three most useful, specific suggestions. */
+function speakSuggestions(r) {
+  const s = [];
+  const missing = r.development.filter(d => !d.found);
+  if (!r.typed && r.goalSeconds && r.seconds < r.goalSeconds * 0.6) {
+    s.push(`Length: you spoke for ${fmtTime(r.seconds)} of your ${fmtTime(r.goalSeconds)} goal. After each idea, add one more layer: why → an example → how you felt → what you learned. Each layer is about 20–30 seconds.`);
+  }
+  if (r.silence && r.silence.longest >= 5) {
+    s.push(`Pauses: your longest silence was about ${Math.round(r.silence.longest)} seconds. When you get stuck, keep your voice going with a bridge phrase: “Let me think…”, “What I mean is…”, “Another thing is…”. It's fine to pause, but don't stop.`);
+  }
+  if (r.grammarGroups.length) {
+    const g = r.grammarGroups[0], p = g.pairs[0];
+    s.push(`Grammar focus: ${g.title.toLowerCase()}. You said “${p.before}”; try “${p.after}”. Say the corrected phrase aloud three times, then use it in a new sentence of your own.`);
+  }
+  const topFiller = Object.entries(r.fillers).sort((a, b) => b[1] - a[1])[0];
+  if (topFiller && topFiller[1] >= 3) {
+    s.push(`Fillers: “${topFiller[0]}” appeared ${topFiller[1]} times. Next time, replace it with a short silent pause. Silence sounds more confident than a filler.`);
+  }
+  if (r.repeatedWords.length && r.repeatedWords[0][1] >= 4) {
+    const [w, n] = r.repeatedWords[0];
+    const alts = VOCAB_ALTS[w];
+    s.push(`Variety: you used “${w}” ${n} times.${alts ? ` Try ${alts.slice(0, 3).map(a => `“${a}”`).join(', ')} where they fit.` : ' Think of one or two other words you could use instead.'}`);
+  }
+  if (r.andRate > 7 && r.andCount >= 6) {
+    s.push(`Linking: you joined many ideas with “and” (${r.andCount} times). Mix in “so”, “but”, “because”, “after that” and “that's why”, and sometimes simply end the sentence.`);
+  }
+  if (missing.length) {
+    const m = missing[0];
+    s.push(`Development: your answer didn't include ${m.label.toLowerCase()}. ${m.tip}`);
+  }
+  if (r.wpm && r.wpm < 70 && !r.typed) {
+    s.push(`Pace: about ${r.wpm} words per minute were recognised. Speak in short chunks of 3–5 words and keep going. (If recognition missed words, the real number may be higher.)`);
+  }
+  if (r.wpm && r.wpm > 175) s.push(`Pace: about ${r.wpm} words per minute is fast. Slow down slightly and pause after each idea so listeners can follow.`);
+  if (s.length < 3) s.push(r.goalSeconds && r.seconds >= r.goalSeconds * 0.9 ? 'Next time, increase the duration or pick a topic you find harder. Stretching a little each day is how five minutes becomes easy.' : 'Repeat this same topic once more right now. A second attempt is usually smoother and longer, because the ideas are ready.');
+  if (s.length < 3) s.push('Record the corrected version below: read it aloud once, then say it again without looking.');
+  return s.slice(0, 3);
+}
+</script>
+<script id="app">
+'use strict';
+/* =====================================================================
+   APP: browser APIs (speech, microphone, storage) and the user interface.
+   ===================================================================== */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const dateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+// ---------- Saved state (localStorage) ----------
+const STORE_KEY = 'voicemirror.v1';
+const defaultState = () => ({
+  history: [],
+  stats: { sessions: 0, lastAt: 0, exercises: 0, totalSeconds: 0, longestSeconds: 0, longestTopic: '', dailiesDone: 0 },
+  daily: {},
+  prefs: { recLang: 'en-IN', voiceURI: '', rate: 1, level: 'beginner', duration: 120 }
+});
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return defaultState();
+    const d = JSON.parse(raw), def = defaultState();
+    return { ...def, ...d, stats: { ...def.stats, ...d.stats }, prefs: { ...def.prefs, ...d.prefs },
+      daily: d.daily && typeof d.daily === 'object' ? d.daily : {}, history: Array.isArray(d.history) ? d.history : [] };
+  } catch (e) { return defaultState(); }
+}
+let state = loadState();
+let storageWarned = false;
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch (e) { if (!storageWarned) { storageWarned = true; toast('Progress could not be saved: browser storage is blocked or full.'); } }
+}
+const MODE_LABEL = { shadowing: 'Shadowing', speak: 'Speak Freely', conversation: 'Conversation', coach: 'Sentence Coach', daily: 'Daily Challenge' };
+
+/** Record one completed exercise. A new "session" starts after 30 minutes without practice. */
+function logExercise({ type, label = '', seconds = 0, words = null }) {
+  const now = Date.now();
+  if (!state.stats.lastAt || now - state.stats.lastAt > 30 * 60 * 1000) state.stats.sessions++;
+  state.stats.lastAt = now;
+  state.stats.exercises++;
+  state.stats.totalSeconds += Math.round(seconds || 0);
+  state.history.unshift({ t: now, type, label, seconds: Math.round(seconds || 0), words });
+  state.history = state.history.slice(0, 200);
+  save();
+}
+function streakDays() {
+  const days = new Set(state.history.map(h => dateKey(new Date(h.t))));
+  let n = 0;
+  const d = new Date();
+  if (!days.has(dateKey(d))) d.setDate(d.getDate() - 1); // streak still alive if you practised yesterday
+  while (days.has(dateKey(d))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+
+// ---------- Toast ----------
+let toastTimer;
+function toast(msg, ms = 4000) {
+  const el = $('#toast');
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+
+// ---------- Feature detection ----------
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SUPPORT = {
+  sr: !!SR,
+  tts: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window,
+  mic: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+  recorder: 'MediaRecorder' in window
+};
+
+// ---------- Text-to-speech ----------
+const TTS = {
+  voices: [],
+  init() {
+    if (!SUPPORT.tts) return;
+    const load = () => { this.voices = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang) || v.lang === 'en'); fillVoiceSelect(); };
+    load();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', load);
+  },
+  pickVoice() {
+    return this.voices.find(v => v.voiceURI === state.prefs.voiceURI)
+      || this.voices.find(v => /Google UK English Female/i.test(v.name))
+      || this.voices.find(v => /Google US English/i.test(v.name))
+      || this.voices.find(v => /en[-_](GB|US)/i.test(v.lang)) || this.voices[0] || null;
+  },
+  /** Speak text. rateFactor 1 = your normal rate, 0.7 = slow. */
+  speak(text, rateFactor = 1, onend) {
+    if (!SUPPORT.tts) { toast('Text-to-speech is not available in this browser.'); return false; }
+    if (Capture.busy()) { toast('Stop the recording first.'); return false; }
+    speechSynthesis.cancel();
+    // Chrome can cut off long utterances, so long text is queued sentence by sentence.
+    const parts = text.length > 180 ? splitSentences(text) : [text];
+    const v = this.pickVoice();
+    parts.forEach((part, i) => {
+      const u = new SpeechSynthesisUtterance(part);
+      if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB';
+      u.rate = Math.max(0.5, Math.min(1.5, (state.prefs.rate || 1) * rateFactor));
+      if (i === parts.length - 1) u.onend = () => onend && onend();
+      u.onerror = e => {
+        if (e.error !== 'interrupted' && e.error !== 'canceled') toast('The voice could not play (' + e.error + ').');
+      };
+      speechSynthesis.speak(u);
+    });
+    return true;
+  },
+  stop() { if (SUPPORT.tts) speechSynthesis.cancel(); }
+};
+
+// ---------- Microphone + speech recognition ----------
+function micErrorMessage(e) {
+  const n = e && e.name;
+  if (n === 'NotAllowedError' || n === 'SecurityError') return 'Microphone access was blocked. Click the microphone icon in Chrome\'s address bar, choose “Allow”, then try again.';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No microphone was found. Plug one in (or check your system sound settings) and try again.';
+  if (n === 'NotReadableError') return 'Your microphone is being used by another app or can\'t be opened. Close other apps using it and try again.';
+  return 'Could not start the microphone' + (e && e.message ? ': ' + e.message : '.');
+}
+function srErrorMessage(code) {
+  return ({
+    'not-allowed': 'Speech recognition was blocked. Allow microphone access for this page in Chrome and try again.',
+    'service-not-allowed': 'Speech recognition is not allowed here. Make sure you are using Google Chrome and that speech services are enabled.',
+    'network': 'Speech recognition needs an internet connection (Chrome sends audio to Google to turn it into text). Your audio is still being recorded.',
+    'audio-capture': 'Speech recognition could not access the microphone.',
+    'language-not-supported': 'The selected recognition accent is not supported. Change it on the Progress page.'
+  })[code] || ('Speech recognition stopped (' + code + ').');
+}
+
+/**
+ * Capture = one recording session at a time: microphone audio (for replay),
+ * speech recognition (for the transcript), a timer, a level meter, and silence tracking.
+ * Nothing is fabricated: if recognition fails, the transcript is simply empty and the reason is reported.
+ */
+const Capture = {
+  cur: null,
+  busy() { return !!this.cur; },
+
+  async start(o) {
+    if (this.cur) { toast('A recording is already running.'); return false; }
+    if (!SUPPORT.mic && !SUPPORT.sr) { o.onError && o.onError('This browser cannot use the microphone. Please open VoiceMirror in Google Chrome.'); return false; }
+    const c = this.cur = { o, finals: [], interim: '', stopping: false, cancelled: false, startedAt: 0, recError: null,
+      restarts: [], chunks: [], srSession: 0, seen: new Set(), vad: null };
+    TTS.stop();
+
+    // 1) Microphone stream, used for the replayable recording, level meter and pause detection.
+    if (SUPPORT.mic) {
+      try { c.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+      catch (e) { this.cur = null; o.onError && o.onError(micErrorMessage(e)); return false; }
+    }
+    if (c.cancelled) { c.stream && c.stream.getTracks().forEach(t => t.stop()); this.cur = null; return false; }
+
+    // 2) Audio recording, kept in memory only.
+    if (c.stream && o.record !== false && SUPPORT.recorder) {
+      try {
+        const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+        c.rec = new MediaRecorder(c.stream, mime ? { mimeType: mime } : undefined);
+        c.mime = c.rec.mimeType || mime || 'audio/webm';
+        c.rec.ondataavailable = e => { if (e.data && e.data.size) c.chunks.push(e.data); };
+        c.rec.start(1000);
+      } catch (e) { c.rec = null; }
+    }
+
+    // 3) Level meter and silence detection from the raw audio signal.
+    if (c.stream) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        c.ac = new AC();
+        if (c.ac.state === 'suspended') c.ac.resume();
+        c.an = c.ac.createAnalyser(); c.an.fftSize = 1024;
+        c.ac.createMediaStreamSource(c.stream).connect(c.an);
+        c.buf = new Float32Array(c.an.fftSize);
+        c.vad = { firstVoice: 0, lastVoice: 0, longest: 0, longCount: 0, noise: 0.006 };
+      } catch (e) { c.an = null; }
+    }
+
+    // 4) Speech recognition (transcript).
+    if (SUPPORT.sr && o.transcribe !== false) this._startRecognition(c);
+    else if (!SUPPORT.sr && o.transcribe !== false) c.recError = 'Speech recognition is not available in this browser, so no transcript will be created. Your audio is still recorded.';
+
+    c.startedAt = performance.now();
+    c.timer = setInterval(() => this._tick(c), 100);
+    o.onStart && o.onStart({ transcribing: !!c.sr, recording: !!c.rec, warning: c.recError });
+    return true;
+  },
+
+  _startRecognition(c) {
+    let r;
+    try { r = new SR(); } catch (e) { c.recError = 'Speech recognition could not start in this browser.'; return; }
+    c.sr = r;
+    r.lang = state.prefs.recLang || 'en-IN';
+    r.continuous = true;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    r.onstart = () => { c.srSession++; };
+    r.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i], text = (res[0] && res[0].transcript || '').trim();
+        if (res.isFinal) {
+          const key = c.srSession + ':' + i; // guard against duplicate finals
+          if (text && !c.seen.has(key)) { c.seen.add(key); c.finals.push(text); }
+        } else interim += ' ' + text;
+      }
+      c.interim = interim.trim();
+      c.o.onText && c.o.onText(c.finals.slice(), c.interim);
+    };
+    r.onerror = e => {
+      if (e.error === 'no-speech' || e.error === 'aborted') return; // harmless; restart happens in onend
+      c.srFatal = true;
+      c.recError = srErrorMessage(e.error);
+      c.o.onWarn && c.o.onWarn(c.recError);
+    };
+    r.onend = () => {
+      if (c.stopping || c.srFatal || this.cur !== c) { c.srDone && c.srDone(); return; }
+      // Chrome ends recognition after silence; restart it while recording continues.
+      const now = Date.now();
+      c.restarts = c.restarts.filter(t => now - t < 10000).concat(now);
+      if (c.restarts.length > 6) {
+        c.srFatal = true;
+        c.recError = 'Speech recognition kept stopping, so the transcript may be incomplete. Your audio is still recorded.';
+        c.o.onWarn && c.o.onWarn(c.recError);
+        return;
+      }
+      try { r.start(); } catch (err) { setTimeout(() => { try { if (!c.stopping) r.start(); } catch (e2) { /* give up quietly */ } }, 300); }
+    };
+    try { r.start(); } catch (e) { c.recError = 'Speech recognition could not start.'; c.sr = null; }
+  },
+
+  _tick(c) {
+    const t = (performance.now() - c.startedAt) / 1000;
+    let level = 0;
+    if (c.an) {
+      c.an.getFloatTimeDomainData(c.buf);
+      let sum = 0;
+      for (let i = 0; i < c.buf.length; i++) sum += c.buf[i] * c.buf[i];
+      const rms = Math.sqrt(sum / c.buf.length);
+      level = Math.min(1, rms * 8);
+      const v = c.vad, threshold = Math.max(0.012, v.noise * 2.5);
+      if (rms > threshold) {
+        if (!v.firstVoice) v.firstVoice = t;
+        else {
+          const gap = t - v.lastVoice;
+          if (gap > v.longest) v.longest = gap;
+          if (gap >= 3) v.longCount++;
+        }
+        v.lastVoice = t;
+      } else v.noise = v.noise * 0.97 + rms * 0.03;
+    }
+    const silentFor = c.vad && c.vad.firstVoice ? t - c.vad.lastVoice : 0;
+    c.o.onTick && c.o.onTick(t, level, silentFor);
+    if (c.o.maxSeconds && t >= c.o.maxSeconds) this.stop('time');
+    else if (c.o.autoStopSilence && c.vad && c.vad.firstVoice && silentFor >= c.o.autoStopSilence && (c.finals.length || c.interim || !c.sr)) this.stop('silence');
+  },
+
+  /** Stop the current recording and deliver results through onEnd. */
+  async stop(reason = 'user') {
+    const c = this.cur;
+    if (!c || c.stopping) return;
+    if (!c.startedAt) { c.cancelled = true; c.o.onError && c.o.onError('Recording cancelled.'); return; } // still waiting for permission
+    c.stopping = true;
+    clearInterval(c.timer);
+    const seconds = (performance.now() - c.startedAt) / 1000;
+    const waits = [];
+    if (c.sr) waits.push(new Promise(res => { c.srDone = res; try { c.sr.stop(); } catch (e) { res(); } setTimeout(res, 2000); }));
+    if (c.rec && c.rec.state !== 'inactive') waits.push(new Promise(res => { c.rec.onstop = res; try { c.rec.stop(); } catch (e) { res(); } setTimeout(res, 2000); }));
+    await Promise.all(waits);
+    if (c.stream) c.stream.getTracks().forEach(t => t.stop());
+    try { c.ac && c.ac.close(); } catch (e) { /* ignore */ }
+    let audioUrl = null, blob = null;
+    if (c.chunks.length) { blob = new Blob(c.chunks, { type: c.mime }); audioUrl = URL.createObjectURL(blob); }
+    // Words still "in progress" when you stopped are real recognised text, so keep them.
+    const segments = c.finals.concat(c.interim ? [c.interim] : []).filter(Boolean);
+    this.cur = null;
+    const v = c.vad;
+    c.o.onEnd && c.o.onEnd({
+      reason, seconds, segments, transcript: segments.join(' '), audioUrl, blob, mime: c.mime,
+      recError: c.recError, transcribed: !!c.sr, heardVoice: v ? !!v.firstVoice : null,
+      silence: v && v.firstVoice ? { longest: v.longest, longCount: v.longCount } : null
+    });
+  }
+};
+
+// Shared UI helpers for recorders
+function setMic(btn, recording, labelIdle) {
+  btn.classList.toggle('recording', recording);
+  btn.setAttribute('aria-label', recording ? 'Stop recording' : (labelIdle || 'Start recording'));
+  btn.setAttribute('aria-pressed', recording ? 'true' : 'false');
+}
+function renderLive(el, finals, interim) {
+  el.innerHTML = escapeHtml(finals.join(' ')) + (interim ? ' <span class="interim">' + escapeHtml(interim) + '</span>' : '');
+}
+function setLevel(el, level) { if (el) el.style.width = Math.round(level * 100) + '%'; }
+const audioUrls = {};
+function keepAudio(key, url) {
+  if (audioUrls[key]) URL.revokeObjectURL(audioUrls[key]);
+  audioUrls[key] = url;
+}
+function audioBlock(url, mime, name) {
+  if (!url) return '';
+  const ext = /mp4/.test(mime) ? 'm4a' : /ogg/.test(mime) ? 'ogg' : 'webm';
+  return `<div class="row" style="margin-top:6px"><audio controls src="${url}" style="max-width:100%"></audio>
+    <a class="btn small" href="${url}" download="voicemirror-${name}-${dateKey()}.${ext}">Download recording</a></div>
+    <p class="small muted" style="margin-top:6px">This recording is kept only until you leave or reload the page, unless you download it.</p>`;
+}
+function endProblem(res) {
+  // Explain honestly why there is no transcript.
+  if (res.recError) return res.recError;
+  if (res.heardVoice === false) return 'No voice was detected from your microphone. Check that the right microphone is selected and not muted, then try again.';
+  if (!res.transcribed) return 'Speech recognition is not available, so there is no transcript.';
+  return 'Speech recognition didn\'t return any words. Try speaking a little louder and closer to the microphone, check your internet connection, or type your answer instead.';
+}
+
+// ---------- "Copy for AI feedback" ----------
+// The app itself never contacts an AI. This builds a ready-made request you can
+// paste into an AI chat you already use (e.g. Claude.ai or ChatGPT).
+const AI_INTRO = 'I am an English learner from India. My goal is to speak English confidently and continuously for five minutes, expressing my own thoughts naturally.';
+const AI_SPEECH_NOTE = 'The text was created by browser speech recognition, so some words may be misheard. Please don\'t treat obvious recognition errors as my mistakes, and don\'t comment on my accent.';
+function aiPrompt(kind, d) {
+  if (kind === 'speak') return `${AI_INTRO}
+
+Below is ${d.typed ? 'an answer I typed' : 'a transcript of me speaking'} about this topic: "${d.topic}"
+${d.typed ? '' : `Speaking time: ${fmtTime(d.seconds)} (my goal was ${fmtTime(d.goal)}). Words: ${d.count}.\n${AI_SPEECH_NOTE}\n`}
+"""
+${d.text}
+"""
+
+Please help me in simple English:
+1. My most important grammar mistakes (maximum 5), each with the correction and a short, simple explanation.
+2. My answer rewritten in natural, conversational English. Keep my ideas and meaning.
+3. Five useful words or phrases I could have used for this topic, each with an example sentence.
+4. How I could make my answer longer and better organised (reasons, examples, feelings, what I learned).
+5. Three specific things to practise in my next attempt.
+Be honest but encouraging.`;
+  if (kind === 'coach') return `${AI_INTRO}
+
+Please check this sentence:
+"${d.text}"
+
+In simple English, give me:
+1. A grammatically correct version.
+2. A more natural version that a fluent speaker would say in conversation.
+3. A short, simple explanation of each change (no difficult grammar terms).
+4. Two more example sentences using the same pattern.
+5. If it's already correct, tell me, and show me one way to make it sound more natural.`;
+  if (kind === 'conversation') return `${AI_INTRO}
+
+I practised this situation: "${d.title}" (${d.role.replace(/^Your partner is /, 'the other person is ').replace(/\.$/, '')}).
+${d.spoken ? AI_SPEECH_NOTE + '\n' : ''}
+Here are the questions and my answers:
+${d.answers.map((a, i) => `Q${i + 1}: ${a.q}\nMe: ${a.text}`).join('\n\n')}
+
+Please help me in simple English:
+1. For each of my answers, a better, more natural version that a fluent speaker might say. Keep my meaning.
+2. My most important grammar mistakes (maximum 5), with simple explanations.
+3. Which answers were too short, and how I could add detail.
+4. Five useful phrases for this kind of conversation.
+5. One or two questions I could have asked back to keep the conversation going.`;
+  return '';
+}
+function aiBlock(prompt) {
+  return `<div class="card soft ai-block">
+    <div class="row"><h3 style="margin:0">Want smarter feedback from AI?</h3><span class="spacer"></span><span class="chip info">Free · optional</span></div>
+    <p class="small" style="margin:8px 0 12px">The feedback above uses fixed rules. For deeper, AI feedback: copy this ready-made request and paste it into an AI chat you use, such as Claude.ai or ChatGPT. Nothing is sent anywhere unless you paste it yourself.</p>
+    <div class="row">
+      <button class="btn primary" data-copy-ai>Copy for AI feedback</button>
+      <a class="btn small" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude.ai</a>
+      <a class="btn small" href="https://chatgpt.com/" target="_blank" rel="noopener">Open ChatGPT</a>
+      <span class="small muted" data-copy-status aria-live="polite"></span>
+    </div>
+    <details style="margin-top:12px"><summary class="small">Show the text that will be copied</summary>
+      <textarea readonly style="margin-top:8px; min-height:200px; font-size:.9rem">${escapeHtml(prompt)}</textarea></details>
+  </div>`;
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* fall back below */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) { return false; }
+}
+document.addEventListener('click', async e => {
+  const btn = e.target.closest('[data-copy-ai]');
+  if (!btn) return;
+  const block = btn.closest('.ai-block');
+  const status = $('[data-copy-status]', block);
+  const ok = await copyText($('textarea', block).value);
+  if (ok) { status.textContent = 'Copied! Now open an AI chat and paste (Ctrl+V).'; btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = 'Copy for AI feedback'; }, 3000); }
+  else { status.textContent = 'Couldn\'t copy automatically. Open “Show the text”, select it all (Ctrl+A) and copy (Ctrl+C).'; $('details', block).open = true; }
+});
+
+// ---------- Navigation ----------
+const VIEWS = ['dashboard', 'daily', 'shadowing', 'speak', 'conversation', 'coach', 'progress'];
+const onShow = {};
+function show(view) {
+  if (!VIEWS.includes(view)) view = 'dashboard';
+  if (Capture.busy()) Capture.stop('navigate');
+  TTS.stop();
+  $$('.view').forEach(v => { v.hidden = v.id !== 'view-' + view; });
+  $$('.nav button').forEach(b => { b.classList.toggle('active', b.dataset.view === view); b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'); });
+  if (location.hash.slice(1) !== view) history.replaceState(null, '', '#' + view);
+  window.scrollTo(0, 0);
+  renderDailyBanners();
+  onShow[view] && onShow[view]();
+}
+document.addEventListener('click', e => {
+  const nav = e.target.closest('.nav button[data-view]');
+  if (nav) { show(nav.dataset.view); return; }
+  const go = e.target.closest('[data-go]');
+  if (go) show(go.dataset.go);
+});
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+
+// ---------- Dashboard ----------
+const GOAL = 300;
+function goalTip(longest) {
+  if (!longest) return 'Start with a 1-minute Speak Freely attempt. Any length counts.';
+  if (longest < 60) return 'Next milestone: speak for a full minute without stopping.';
+  if (longest < 120) return 'Next milestone: 2 minutes. Add an example and a feeling to every answer.';
+  if (longest < 180) return 'Next milestone: 3 minutes. Use the “Stuck?” ideas to keep going.';
+  if (longest < 300) return 'Next milestone: the full 5 minutes. You\'re close!';
+  return 'You\'ve reached five minutes! Keep it up with harder topics and fewer long pauses.';
+}
+function renderGoal(prefix) {
+  const longest = state.stats.longestSeconds || 0;
+  const pct = Math.min(100, Math.round((longest / GOAL) * 100));
+  $(`#${prefix}-goal-bar`).style.width = pct + '%';
+  $(`#${prefix}-goal-bar`).parentElement.setAttribute('aria-valuenow', pct);
+  $(`#${prefix}-goal-label`).textContent = `${fmtTime(Math.min(longest, 9999))} / 5:00`;
+  $(`#${prefix}-goal-tip`).textContent = goalTip(longest);
+}
+function renderCompat() {
+  const n = [];
+  if (!SUPPORT.sr) n.push(['warn', '<strong>Speech recognition isn\'t available in this browser.</strong> For transcripts and feedback on spoken answers, use Google Chrome on a computer or Android. You can still listen to model sentences, record and replay yourself, and type answers for analysis.']);
+  if (!SUPPORT.mic) n.push(['bad', '<strong>Microphone access isn\'t available.</strong> Open this page in Google Chrome. If it still fails, serve it from <code>http://localhost</code> (see the instructions you were given).']);
+  if (!SUPPORT.tts) n.push(['warn', '<strong>Text-to-speech isn\'t available,</strong> so model sentences can\'t be read aloud. Read them yourself instead.']);
+  if (!navigator.onLine) n.push(['warn', '<strong>You seem to be offline.</strong> Chrome\'s speech recognition usually needs the internet. Recording, playback, typed analysis, and progress still work.']);
+  if (SUPPORT.sr) n.push(['', 'Heads-up: Chrome\'s speech recognition usually sends your audio to Google to turn it into text, so it needs an internet connection. All feedback is then calculated on this device with transparent rules, not AI.']);
+  $('#compat-notices').innerHTML = n.map(([cls, html]) => `<div class="notice ${cls}">${html}</div>`).join('');
+}
+onShow.dashboard = () => {
+  const h = new Date().getHours();
+  $('#greeting').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  renderCompat();
+  renderGoal('dash');
+  $('#dash-sessions').textContent = state.stats.sessions;
+  $('#dash-minutes').textContent = Math.round(state.stats.totalSeconds / 60);
+  $('#dash-exercises').textContent = state.stats.exercises;
+  $('#dash-longest').textContent = fmtTime(state.stats.longestSeconds);
+  const d = todayDaily(), done = DAILY_STEPS.filter(s => d.steps[s.id]).length;
+  $('#dash-daily-bar').style.width = (done / DAILY_STEPS.length * 100) + '%';
+  $('#dash-daily-summary').textContent = done === DAILY_STEPS.length
+    ? 'Today\'s challenge is complete. Well done! Come back tomorrow for new content.'
+    : `${done} of ${DAILY_STEPS.length} steps done. Today's topic: “${dailyContent().topic.t}”`;
+};
+
+// ---------- Progress ----------
+onShow.progress = () => {
+  renderGoal('pr');
+  $('#pr-sessions').textContent = state.stats.sessions;
+  $('#pr-minutes').textContent = Math.round(state.stats.totalSeconds / 60);
+  $('#pr-longest').textContent = fmtTime(state.stats.longestSeconds);
+  $('#pr-longest-topic').textContent = state.stats.longestTopic ? '“' + state.stats.longestTopic + '”' : 'Speak Freely';
+  $('#pr-exercises').textContent = state.stats.exercises;
+  $('#pr-dailies').textContent = state.stats.dailiesDone;
+  $('#pr-streak').textContent = streakDays();
+  const rows = state.history.slice(0, 25).map(h => {
+    const d = new Date(h.t);
+    return `<tr><td>${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</td>
+      <td>${escapeHtml(MODE_LABEL[h.type] || h.type)}</td><td>${escapeHtml(h.label)}</td><td>${h.seconds ? fmtTime(h.seconds) : '–'}</td><td>${h.words ?? '–'}</td></tr>`;
+  }).join('');
+  $('#pr-history').innerHTML = rows;
+  $('#pr-history-empty').hidden = !!rows;
+  $('#pref-lang').value = state.prefs.recLang;
+  $('#pref-rate').value = String(state.prefs.rate);
+  fillVoiceSelect();
+};
+function fillVoiceSelect() {
+  const sel = $('#pref-voice');
+  if (!sel) return;
+  if (!SUPPORT.tts) { sel.innerHTML = '<option>Not available in this browser</option>'; sel.disabled = true; $('#pref-test-voice').disabled = true; return; }
+  if (!TTS.voices.length) { sel.innerHTML = '<option value="">Browser default</option>'; return; }
+  const chosen = TTS.pickVoice();
+  sel.innerHTML = TTS.voices.map(v => `<option value="${escapeHtml(v.voiceURI)}">${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`).join('');
+  if (chosen) sel.value = chosen.voiceURI;
+}
+$('#pref-lang').addEventListener('change', e => { state.prefs.recLang = e.target.value; save(); toast('Recognition accent saved.'); });
+$('#pref-voice').addEventListener('change', e => { state.prefs.voiceURI = e.target.value; save(); });
+$('#pref-rate').addEventListener('change', e => { state.prefs.rate = parseFloat(e.target.value) || 1; save(); });
+$('#pref-test-voice').addEventListener('click', () => TTS.speak('Hello! This is the voice you will hear for model sentences.'));
+$('#reset-start').addEventListener('click', () => { $('#reset-row').hidden = true; $('#reset-confirm').hidden = false; });
+$('#reset-no').addEventListener('click', () => { $('#reset-row').hidden = false; $('#reset-confirm').hidden = true; });
+$('#reset-yes').addEventListener('click', () => {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
+  state = defaultState();
+  save();
+  $('#reset-row').hidden = false; $('#reset-confirm').hidden = true;
+  toast('Your progress has been reset.');
+  onShow.progress();
+});
+// =====================================================================
+// MODE A: SHADOWING
+// =====================================================================
+const Shadow = { idx: 0, hidden: false };
+const shList = () => DATA.shadow[state.prefs.level] || DATA.shadow.beginner;
+const shSentence = () => shList()[Shadow.idx];
+function shRender() {
+  const list = shList();
+  Shadow.idx = (Shadow.idx + list.length) % list.length;
+  $('#sh-level').value = state.prefs.level in DATA.shadow ? state.prefs.level : 'beginner';
+  $('#sh-sentence').textContent = list[Shadow.idx];
+  $('#sh-sentence').classList.toggle('hidden-text', Shadow.hidden);
+  $('#sh-hide').textContent = Shadow.hidden ? 'Show text' : 'Hide text';
+  $('#sh-counter').textContent = `${Shadow.idx + 1} / ${list.length}`;
+  $('#sh-result').hidden = true;
+  $('#sh-live').innerHTML = '';
+  $('#sh-status').textContent = SUPPORT.sr ? 'Press the microphone, then repeat the sentence.' : 'Speech recognition is unavailable: you can still record yourself and compare by ear.';
+  $('#sh-tts-note').textContent = SUPPORT.tts ? 'Tip: listen two or three times before recording. Copy the rhythm and the linking between words.' : 'Text-to-speech isn\'t available in this browser, so read the sentence yourself first.';
+  $('#sh-play').disabled = $('#sh-play-slow').disabled = !SUPPORT.tts;
+}
+function shMove(step) {
+  if (Capture.busy()) { toast('Stop the recording first.'); return; }
+  Shadow.idx += step; shRender();
+}
+onShow.shadowing = shRender;
+$('#sh-level').addEventListener('change', e => {
+  if (Capture.busy()) { e.target.value = state.prefs.level; toast('Stop the recording first.'); return; }
+  state.prefs.level = e.target.value; Shadow.idx = 0; save(); shRender();
+});
+$('#sh-play').addEventListener('click', () => TTS.speak(shSentence(), 1));
+$('#sh-play-slow').addEventListener('click', () => TTS.speak(shSentence(), 0.7));
+$('#sh-hide').addEventListener('click', () => { Shadow.hidden = !Shadow.hidden; $('#sh-sentence').classList.toggle('hidden-text', Shadow.hidden); $('#sh-hide').textContent = Shadow.hidden ? 'Show text' : 'Hide text'; });
+$('#sh-prev').addEventListener('click', () => shMove(-1));
+$('#sh-next').addEventListener('click', () => shMove(1));
+$('#sh-mic').addEventListener('click', shToggle);
+
+function shToggle() {
+  const mic = $('#sh-mic'), status = $('#sh-status');
+  if (Capture.busy()) { Capture.stop('user'); status.textContent = 'Processing…'; return; }
+  $('#sh-result').hidden = true;
+  $('#sh-live').innerHTML = '';
+  const sentence = shSentence();
+  status.textContent = 'Starting the microphone…';
+  Capture.start({
+    maxSeconds: 25, autoStopSilence: 2.5,
+    onStart(info) {
+      setMic(mic, true);
+      status.classList.add('live');
+      status.textContent = info.transcribing ? 'Listening… say the sentence. It stops by itself when you pause, or press the button.' : (info.warning || 'Recording… press the button to stop.');
+    },
+    onText(f, i) { renderLive($('#sh-live'), f, i); },
+    onTick(t, lv) { setLevel($('#sh-level-bar'), lv); },
+    onWarn(msg) { status.textContent = msg; },
+    onError(msg) { setMic(mic, false); status.classList.remove('live'); status.textContent = msg; },
+    onEnd(res) {
+      setMic(mic, false); setLevel($('#sh-level-bar'), 0);
+      status.classList.remove('live');
+      status.textContent = 'Press the microphone to try again.';
+      if (res.reason === 'navigate') return;
+      shResult(sentence, res);
+    }
+  });
+}
+
+function shResult(sentence, res) {
+  keepAudio('sh', res.audioUrl);
+  const box = $('#sh-result');
+  const audio = audioBlock(res.audioUrl, res.mime, 'shadowing');
+  const actions = `<div class="row" style="margin-top:14px">
+      <button class="btn" data-act="model" ${SUPPORT.tts ? '' : 'disabled'}>Play model sentence</button>
+      <button class="btn primary" data-act="retry">Try again</button>
+      <button class="btn" data-act="next">Next sentence</button></div>`;
+  if (!res.transcript) {
+    box.innerHTML = `<h2>Your attempt</h2><div class="notice warn">${escapeHtml(endProblem(res))}</div>
+      ${res.audioUrl ? '<p>You can still compare by ear: play the model, then your recording.</p>' : ''}${audio}${actions}`;
+    box.hidden = false;
+    if (res.heardVoice !== false && res.seconds > 1) { logExercise({ type: 'shadowing', label: 'Recorded (no transcript)', seconds: res.seconds }); dailyHook('shadow'); }
+    return;
+  }
+  const r = compareShadow(sentence, res.transcript);
+  const modelHtml = r.modelWords.map(w => `<span class="tok ${w.status}" title="${w.status === 'changed' ? 'Recognised as: ' + escapeHtml(w.heard) : w.status}">${escapeHtml(w.word)}${w.status === 'changed' && w.heard ? ` <small>(heard: ${escapeHtml(w.heard)})</small>` : ''}</span>`).join('');
+  const heardHtml = r.heardWords.map(w => `<span class="tok ${w.status}">${escapeHtml(w.word)}</span>`).join('');
+  box.innerHTML = `
+    <div class="row" style="align-items:flex-end">
+      <div><div class="small muted">Word match: recognised words vs. the model sentence</div><div class="big-number">${r.pct}%</div></div>
+      <span class="spacer"></span>
+      <span class="small muted" style="max-width:340px">This is not a pronunciation or proficiency score. It only shows which words Chrome's speech recognition heard.</span>
+    </div>
+    <h3 style="margin-top:18px">Model sentence</h3><div class="tokens">${modelHtml}</div>
+    <h3 style="margin-top:14px">What was recognised</h3><div class="tokens">${heardHtml}</div>
+    <div class="row small" style="margin-top:10px">
+      <span class="tok ok">matched</span><span class="tok missing">missing</span><span class="tok changed">changed</span><span class="tok added">added</span>
+    </div>
+    <h3 style="margin-top:18px">What to practise next</h3>
+    <ul class="feedback-list">${r.tips.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>
+    ${audio}${actions}`;
+  box.hidden = false;
+  logExercise({ type: 'shadowing', label: `${r.pct}% word match: “${sentence.length > 48 ? sentence.slice(0, 46) + '…' : sentence}”`, seconds: res.seconds, words: r.heardWords.length });
+  dailyHook('shadow');
+}
+$('#sh-result').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]');
+  if (!act) return;
+  if (act.dataset.act === 'model') TTS.speak(shSentence(), 1);
+  if (act.dataset.act === 'retry') shToggle();
+  if (act.dataset.act === 'next') shMove(1);
+});
+
+// =====================================================================
+// MODE B: SPEAK FREELY
+// =====================================================================
+const Speak = { idx: Math.floor(Math.random() * DATA.topics.length), custom: null };
+const spTopic = () => Speak.custom || DATA.topics[Speak.idx];
+const spDuration = () => parseInt($('#sp-duration').value, 10) || 120;
+function spRender() {
+  const t = spTopic();
+  $('#sp-topic').textContent = t.t;
+  $('#sp-ideas').innerHTML = t.ideas.map((q, i) => `<div data-idea="${i}">${i + 1}. ${escapeHtml(q)}</div>`).join('');
+  if (!Capture.busy()) spResetTimer();
+}
+function spResetTimer() {
+  $('#sp-timer').textContent = '0:00';
+  $('#sp-remaining').textContent = 'Goal: ' + fmtTime(spDuration());
+  $('#sp-time-bar').style.width = '0';
+}
+onShow.speak = () => {
+  if (!Capture.busy()) $('#sp-duration').value = String(state.prefs.duration);
+  spRender();
+  if (!SUPPORT.sr) { $('#sp-typed-wrap').open = true; $('#sp-status').textContent = 'Speech recognition is unavailable: you can record to replay, and type your answer for analysis.'; }
+};
+$('#sp-duration').addEventListener('change', e => {
+  if (Capture.busy()) { e.target.value = String(state.prefs.duration); toast('Stop the recording first.'); return; }
+  state.prefs.duration = spDuration(); save(); spResetTimer();
+});
+$('#sp-new-topic').addEventListener('click', () => {
+  if (Capture.busy()) { toast('Stop the recording first.'); return; }
+  Speak.custom = null;
+  let n; do { n = Math.floor(Math.random() * DATA.topics.length); } while (n === Speak.idx && DATA.topics.length > 1);
+  Speak.idx = n; spRender(); $('#sp-result').hidden = true;
+});
+$('#sp-read-topic').addEventListener('click', () => TTS.speak(spTopic().t, 1));
+$('#sp-mic').addEventListener('click', spToggle);
+$('#sp-analyse-typed').addEventListener('click', () => {
+  const text = $('#sp-typed').value.trim();
+  if (words(text).length < 3) { toast('Please type at least a few words first.'); return; }
+  const a = analyseSpeech({ transcript: text, typed: true, goalSeconds: spDuration() });
+  spRenderResult(a, null);
+  logExercise({ type: 'speak', label: spTopic().t + ' (typed)', words: a.count });
+  dailyHook(Daily.active === 'warmup' ? 'warmup' : 'speak');
+});
+
+function spToggle() {
+  const mic = $('#sp-mic'), status = $('#sp-status');
+  if (Capture.busy()) { Capture.stop('user'); status.textContent = 'Processing your answer…'; return; }
+  const goal = spDuration(), topic = spTopic();
+  $('#sp-result').hidden = true;
+  $('#sp-live').innerHTML = '';
+  status.textContent = 'Starting the microphone…';
+  Capture.start({
+    maxSeconds: goal,
+    onStart(info) {
+      setMic(mic, true, 'Start speaking');
+      status.classList.add('live');
+      status.textContent = info.transcribing ? 'Recording. Keep talking! Press the button to finish early.' : (info.warning || 'Recording…');
+    },
+    onText(f, i) { const el = $('#sp-live'); renderLive(el, f, i); el.scrollTop = el.scrollHeight; },
+    onTick(t, lv, silent) {
+      setLevel($('#sp-level-bar'), lv);
+      $('#sp-timer').textContent = fmtTime(t);
+      $('#sp-remaining').textContent = fmtTime(goal - t) + ' left';
+      $('#sp-time-bar').style.width = Math.min(100, t / goal * 100) + '%';
+      // Suggest the next idea as time passes, so you always have something to say.
+      const k = Math.min(topic.ideas.length - 1, Math.floor(t / (goal / topic.ideas.length)));
+      $$('#sp-ideas [data-idea]').forEach(d => { d.style.background = +d.dataset.idea === k ? 'var(--primary-soft)' : ''; d.style.fontWeight = +d.dataset.idea === k ? '600' : ''; });
+      if (silent > 4) status.textContent = 'Keep going. Try: “Another thing is…” or idea ' + (k + 1) + '.';
+      else if (silent < 1 && /Keep going/.test(status.textContent)) status.textContent = 'Recording. Keep talking!';
+    },
+    onWarn(msg) { status.textContent = msg; },
+    onError(msg) { setMic(mic, false, 'Start speaking'); status.classList.remove('live'); status.textContent = msg; },
+    onEnd(res) {
+      setMic(mic, false, 'Start speaking'); setLevel($('#sp-level-bar'), 0);
+      status.classList.remove('live');
+      status.textContent = res.reason === 'time' ? 'Time! Here is your review.' : 'Here is your review. Press the microphone to try again.';
+      $$('#sp-ideas [data-idea]').forEach(d => { d.style.background = ''; d.style.fontWeight = ''; });
+      if (res.reason === 'navigate') return;
+      spFinish(res, topic, goal);
+    }
+  });
+}
+
+function spFinish(res, topic, goal) {
+  keepAudio('sp', res.audioUrl);
+  const voiced = res.heardVoice !== false && res.seconds > 3;
+  if (voiced && res.seconds > state.stats.longestSeconds) { state.stats.longestSeconds = Math.round(res.seconds); state.stats.longestTopic = topic.t; save(); }
+  if (!res.transcript) {
+    const box = $('#sp-result');
+    box.innerHTML = `<div class="card"><h2>Your attempt (${fmtTime(res.seconds)})</h2>
+      <div class="notice warn">${escapeHtml(endProblem(res))}</div>
+      <p>No analysis is shown because there is no transcript to analyse. You can replay your recording below, or open “Type your answer instead” above.</p>
+      ${audioBlock(res.audioUrl, res.mime, 'speaking')}</div>`;
+    box.hidden = false;
+    if (voiced) { logExercise({ type: 'speak', label: topic.t + ' (no transcript)', seconds: res.seconds }); dailyHook(Daily.active === 'warmup' ? 'warmup' : 'speak'); }
+    $('#sp-typed-wrap').open = true;
+    return;
+  }
+  const a = analyseSpeech({ transcript: res.transcript, segments: res.segments, seconds: res.seconds, goalSeconds: goal, silence: res.silence });
+  spRenderResult(a, res);
+  logExercise({ type: 'speak', label: topic.t, seconds: res.seconds, words: a.count });
+  dailyHook(Daily.active === 'warmup' ? 'warmup' : 'speak');
+}
+
+function highlightFillers(text) {
+  const re = new RegExp(`\\b(${alt(HESITATIONS.concat(FILLER_PHRASES))})\\b`, 'gi');
+  return escapeHtml(text).replace(re, '<mark class="filler">$1</mark>');
+}
+function stat(label, value, hint) {
+  return `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+}
+function spRenderResult(a, res) {
+  const topic = spTopic();
+  const fillerList = Object.entries(a.fillers).sort((x, y) => y[1] - x[1]);
+  const varietyLabel = a.variety == null ? '' : a.variety >= 70 ? 'varied' : a.variety >= 55 ? 'fairly varied' : 'quite repetitive';
+  const metrics = [
+    a.typed ? stat('Speaking time', 'Typed', 'not measured') : stat('Speaking time', fmtTime(a.seconds), 'goal ' + fmtTime(a.goalSeconds)),
+    stat('Words recognised', a.count, a.typed ? 'typed words' : 'by speech recognition'),
+    a.wpm ? stat('Words per minute', '≈' + a.wpm, 'natural conversation is often 110–160') : '',
+    stat('Filler words', a.fillerTotal, fillerList.length ? fillerList.slice(0, 3).map(([k, n]) => `${k} ×${n}`).join(', ') : (a.typed ? 'in your text' : 'Chrome often drops “um/uh”, so this may be low')),
+    a.silence ? stat('Longest pause', Math.round(a.silence.longest) + 's', a.silence.longCount + ' pause(s) of 3s or more') : '',
+    a.variety != null ? stat('Vocabulary variety', a.variety + '%', 'different words per 40-word stretch: ' + varietyLabel) : ''
+  ].join('');
+
+  const missingDev = a.development.filter(d => !d.found);
+  const expand = a.isShort ? `<div class="notice warn"><strong>Let's make it longer.</strong> ${a.typed ? 'Your answer is quite short.' : `You spoke for ${fmtTime(a.seconds)} of your ${fmtTime(a.goalSeconds)} goal.`} That's a real start, and now add layers:
+      <ul class="feedback-list" style="margin-top:8px">
+        <li><strong>Explain why:</strong> “The main reason is that…”</li>
+        <li><strong>Give an example:</strong> “For example, last month I…”</li>
+        <li><strong>Describe how you felt:</strong> “At that moment I felt…”</li>
+        <li><strong>Share what you learned:</strong> “What I learned from this is…”</li>
+      </ul>
+      Questions to answer next time: ${topic.ideas.map(q => `“${escapeHtml(q)}”`).join(' · ')}</div>` : '';
+
+  const grammar = a.grammarGroups.length
+    ? a.grammarGroups.map(g => `<div class="change"><strong>${escapeHtml(g.title)}</strong>
+        <div style="margin:4px 0">${g.pairs.slice(0, 3).map(p => `<span class="before">${escapeHtml(p.before)}</span> → <span class="after">${escapeHtml(p.after)}</span>`).join('<br>')}</div>
+        <div class="small muted">${escapeHtml(g.why)}</div></div>`).join('')
+    : '<p class="muted">The rule checker didn\'t find any of the common patterns it looks for. That doesn\'t guarantee the answer is error-free.</p>';
+
+  const vocabItems = a.vocab.map(v => `<li>You said <strong>“${v.word}”</strong> ${v.n} times. Alternatives: ${v.alts.map(x => `<em>${escapeHtml(x)}</em>`).join(', ')}</li>`)
+    .concat(a.naturalGroups.map(g => `<li><strong>${escapeHtml(g.title)}:</strong> ${g.pairs.slice(0, 3).map(p => `“${escapeHtml(p.before)}” → “${escapeHtml(p.after)}”`).join('; ')}. <span class="muted small">${escapeHtml(g.why)}</span></li>`));
+
+  const reps = a.repeatedWords.map(([w, n]) => `<span class="chip warn">${escapeHtml(w)} ×${n}</span>`)
+    .concat(a.repeatedPhrases.map(([p, n]) => `<span class="chip warn">“${escapeHtml(p)}” ×${n}</span>`));
+
+  const box = $('#sp-result');
+  box.innerHTML = `
+    <div class="card">
+      <div class="row"><h2 style="margin:0">Your review</h2><span class="spacer"></span><span class="badge-rule">Rule-based analysis · not AI</span></div>
+      <p class="muted small" style="margin-top:6px">Based on the transcript${a.typed ? ' you typed' : ' from Chrome\'s speech recognition'}. It does not judge pronunciation, accent, intonation or confidence.</p>
+      <div class="grid cols-3" style="gap:10px; margin:14px 0">${metrics}</div>
+      ${expand}
+      ${res ? audioBlock(res.audioUrl, res.mime, 'speaking') : ''}
+    </div>
+    <div class="card">
+      <h2>Three things to try next time</h2>
+      <ol class="feedback-list">${a.suggestions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>
+    </div>
+    ${aiBlock(aiPrompt('speak', { topic: topic.t, text: a.transcript, typed: a.typed, seconds: a.seconds, goal: a.goalSeconds, count: a.count }))}
+    <div class="grid cols-2">
+      <div class="card">
+        <h2>Answer development</h2>
+        <ul class="checklist">${a.development.map(d => `<li><span class="mark ${d.found ? 'yes' : 'no'}">${d.found ? '✓' : ''}</span><div><strong>${d.label}</strong>${d.found ? '' : `<div class="small muted">${escapeHtml(d.tip)}</div>`}</div></li>`).join('')}</ul>
+        <p class="small muted" style="margin-top:10px">${missingDev.length ? 'Detected from key phrases such as “because”, “for example”, “I felt”.' : 'Your answer covered every part. Excellent structure.'}</p>
+      </div>
+      <div class="card">
+        <h2>Repetition</h2>
+        ${reps.length ? `<div class="row">${reps.join('')}</div>` : '<p class="muted">No word or phrase was repeated often. Good variety.</p>'}
+        <p class="small" style="margin-top:12px">“and” used <strong>${a.andCount}</strong> time(s)${a.stutters ? ` · <strong>${a.stutters}</strong> repeated word(s) in a row (e.g. “I I”)` : ''}.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row"><h2 style="margin:0">Grammar patterns to check</h2><span class="spacer"></span><span class="badge-rule">Rule-based</span></div>
+      <div style="margin-top:12px">${grammar}</div>
+    </div>
+    <div class="card">
+      <h2>Vocabulary ideas</h2>
+      ${vocabItems.length ? `<ul class="feedback-list">${vocabItems.join('')}</ul>` : '<p class="muted">No overused simple words were found. Nice!</p>'}
+    </div>
+    <div class="card">
+      <h2>What you said</h2>
+      <div class="transcript-box">${highlightFillers(a.transcript)}</div>
+      <p class="small muted" style="margin-top:8px">Highlighted: filler words. Speech recognition can mishear words, so if something looks wrong, it may not be your mistake.</p>
+      <h2 style="margin-top:18px">Corrected version</h2>
+      <div class="versions">
+        <div class="version improved"><div class="tag">Cleaned up and corrected (same meaning)</div>${escapeHtml(a.corrected)}</div>
+        ${a.natural !== a.corrected ? `<div class="version natural"><div class="tag">More natural spoken English</div>${escapeHtml(a.natural)}</div>` : ''}
+      </div>
+      <p class="small muted" style="margin-top:8px">Made with local rules: hesitations removed, common grammar patterns fixed, sentences punctuated. It isn't a teacher's rewrite.</p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" data-act="read" ${SUPPORT.tts ? '' : 'disabled'}>Read the corrected version to me</button>
+        <button class="btn primary" data-act="again">Try this topic again</button>
+      </div>
+    </div>`;
+  box.hidden = false;
+  box.dataset.corrected = a.natural;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+$('#sp-result').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]');
+  if (!act) return;
+  if (act.dataset.act === 'read') TTS.speak($('#sp-result').dataset.corrected || '', 1);
+  if (act.dataset.act === 'again') { window.scrollTo({ top: 0, behavior: 'smooth' }); spToggle(); }
+});
+// =====================================================================
+// MODE C: CONVERSATION (rule-based partner)
+// =====================================================================
+const Conv = { sc: null, qi: 0, followed: false, answers: [], seconds: 0, notes: [], done: false, last: '' };
+$('#cv-scenarios').innerHTML = DATA.scenarios.map(s => `<button class="scenario" data-sc="${s.id}"><strong>${escapeHtml(s.title)}</strong><span class="small muted">${escapeHtml(s.desc)}</span></button>`).join('');
+$('#cv-scenarios').addEventListener('click', e => { const b = e.target.closest('[data-sc]'); if (b) cvStart(b.dataset.sc); });
+onShow.conversation = () => {
+  $('#cv-mic').disabled = !SUPPORT.sr;
+  if (!SUPPORT.sr) $('#cv-status').textContent = 'Speech recognition is unavailable in this browser. Type your answers below.';
+};
+const cvQ = () => Conv.sc.questions[Conv.qi];
+function cvStart(id) {
+  Conv.sc = DATA.scenarios.find(s => s.id === id);
+  Object.assign(Conv, { qi: 0, followed: false, answers: [], seconds: 0, notes: [], done: false, last: '' });
+  $('#cv-picker').hidden = true; $('#cv-summary').hidden = true; $('#cv-session').hidden = false;
+  $('#cv-title').textContent = Conv.sc.title;
+  $('#cv-role').textContent = Conv.sc.role + ' Answer each question in a full sentence or more.';
+  $('#cv-chat').innerHTML = '';
+  $('#cv-help-box').hidden = true;
+  $('#cv-input').value = ''; $('#cv-live').innerHTML = '';
+  cvSetControls(true);
+  cvPartner(Conv.sc.opening + ' ' + cvQ().q);
+}
+function cvSetControls(on) {
+  ['#cv-send', '#cv-help', '#cv-repeat', '#cv-skip', '#cv-input'].forEach(s => { $(s).disabled = !on; });
+  $('#cv-mic').disabled = !on || !SUPPORT.sr;
+}
+function cvPartner(text) {
+  Conv.last = text;
+  const chat = $('#cv-chat');
+  chat.insertAdjacentHTML('beforeend', `<div class="bubble partner"><div class="who">${escapeHtml(Conv.sc.role.replace(/^Your partner is /, '').replace(/\.$/, ''))}</div>${escapeHtml(text)}
+    ${SUPPORT.tts ? `<div><button class="icon-btn" data-say="${escapeHtml(text)}">Play again</button></div>` : ''}</div>`);
+  chat.scrollTop = chat.scrollHeight;
+  if ($('#cv-autoread').checked && SUPPORT.tts) TTS.speak(text, 1);
+}
+function cvMine(text) {
+  const r = improveText(text, { fromSpeech: true });
+  const g = groupHits(r.hits.filter(h => h.kind === 'grammar'))[0];
+  if (g) Conv.notes.push(g);
+  const note = g ? `<div class="note">Coach note: “${escapeHtml(g.pairs[0].before)}” → “${escapeHtml(g.pairs[0].after)}” (${escapeHtml(g.title.toLowerCase())})</div>` : '';
+  const chat = $('#cv-chat');
+  chat.insertAdjacentHTML('beforeend', `<div class="bubble me"><div class="who">You</div>${escapeHtml(text)}${note}</div>`);
+  chat.scrollTop = chat.scrollHeight;
+}
+// Rule-based reaction: chooses a short acknowledgement from keywords in your answer.
+function cvReact(text) {
+  const t = text.toLowerCase();
+  if (/\?\s*$/.test(t) || /^(what|why|how|do you|are you|can you)\b/.test(t)) return pick(['That\'s a good question!', 'Good question. Maybe we can talk about that later.']);
+  if (/\b(because|since|that's why|the reason)\b/.test(t)) return pick(['Thanks for explaining why.', 'That makes sense.', 'I see why.']);
+  if (/\b(hard|difficult|problem|bad|sad|tired|stress|stressful|worried|angry|boring|expensive|not good|didn't like|terrible)\b/.test(t)) return pick(['Oh, that sounds tough.', 'Hmm, I understand.', 'That can\'t have been easy.']);
+  if (/\b(love|enjoy|great|happy|nice|fun|amazing|good|wonderful|excited|like|beautiful)\b/.test(t)) return pick(['That sounds great!', 'Oh, nice!', 'How lovely.']);
+  return pick(['I see.', 'Okay.', 'Right.', 'Interesting.']);
+}
+function cvAnswer(text, seconds) {
+  text = String(text || '').trim();
+  if (Conv.done || !Conv.sc) return;
+  if (!words(text).length) { toast('Please say or type an answer first.'); return; }
+  $('#cv-help-box').hidden = true;
+  cvMine(text);
+  Conv.answers.push({ q: Conv.followed ? cvQ().follow : cvQ().q, text, words: words(text).length });
+  Conv.seconds += seconds || 0;
+  const react = cvReact(text);
+  // Short answer → ask the follow-up once, to practise saying more.
+  if (words(text).length < 10 && !Conv.followed && cvQ().follow) { Conv.followed = true; cvPartner(react + ' ' + cvQ().follow); return; }
+  cvNext(react);
+}
+function cvNext(prefix) {
+  Conv.followed = false;
+  Conv.qi++;
+  if (Conv.qi >= Conv.sc.questions.length) cvFinish(prefix);
+  else cvPartner((prefix ? prefix + ' ' : '') + cvQ().q);
+}
+function cvFinish(prefix) {
+  if (Conv.done) return;
+  Conv.done = true;
+  if (Capture.busy()) Capture.stop('user');
+  cvPartner((prefix ? prefix + ' ' : '') + Conv.sc.closing);
+  cvSetControls(false);
+  const n = Conv.answers.length, total = Conv.answers.reduce((s, a) => s + a.words, 0);
+  const avg = n ? Math.round(total / n) : 0;
+  const longest = Conv.answers.reduce((m, a) => (a.words > (m ? m.words : 0) ? a : m), null);
+  const notes = groupHits(Conv.notes.flatMap(g => g.pairs.map(p => ({ ...g, before: p.before, after: p.after }))));
+  const box = $('#cv-summary');
+  box.innerHTML = `<div class="row"><h2 style="margin:0">Conversation summary</h2><span class="spacer"></span><span class="badge-rule">Rule-based</span></div>
+    <div class="grid cols-3" style="gap:10px; margin:14px 0">
+      ${stat('Answers', n)}${stat('Average answer length', avg + ' words', avg < 12 ? 'aim for 15+ words per answer' : 'good detail')}${stat('Speaking time', Conv.seconds ? fmtTime(Conv.seconds) : '–', Conv.seconds ? 'spoken answers only' : 'typed answers')}
+    </div>
+    ${n ? `<p>${avg < 12 ? 'Your answers were mostly short. In real conversations, add one more detail each time: a reason (“because…”), an example, or a question back (“What about you?”).' : 'You gave answers with good detail. Next time, also ask a question back, e.g. “What about you?”, to keep the conversation going both ways.'}</p>` : '<p>No answers were given in this conversation.</p>'}
+    ${longest ? `<p class="small"><strong>Your longest answer:</strong> “${escapeHtml(longest.text)}”</p>` : ''}
+    ${notes.length ? `<h3>Patterns to practise</h3>${notes.map(g => `<div class="change"><strong>${escapeHtml(g.title)}</strong><div>${g.pairs.slice(0, 2).map(p => `<span class="before">${escapeHtml(p.before)}</span> → <span class="after">${escapeHtml(p.after)}</span>`).join('<br>')}</div><div class="small muted">${escapeHtml(g.why)}</div></div>`).join('')}` : ''}
+    <h3>Useful phrases for this situation</h3>
+    <ul class="feedback-list">${Conv.sc.phrases.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>
+    ${n ? aiBlock(aiPrompt('conversation', { title: Conv.sc.title, role: Conv.sc.role, answers: Conv.answers, spoken: Conv.seconds > 0 })) : ''}
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="again">Practise this again</button><button class="btn" data-act="other">Choose another situation</button></div>`;
+  box.hidden = false;
+  if (n) logExercise({ type: 'conversation', label: Conv.sc.title + ` (${n} answers)`, seconds: Conv.seconds, words: total });
+}
+$('#cv-summary').addEventListener('click', e => {
+  const a = e.target.closest('[data-act]');
+  if (!a) return;
+  if (a.dataset.act === 'again') cvStart(Conv.sc.id);
+  if (a.dataset.act === 'other') { $('#cv-summary').hidden = true; $('#cv-session').hidden = true; $('#cv-picker').hidden = false; }
+});
+$('#cv-chat').addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) TTS.speak(b.dataset.say, 1); });
+$('#cv-send').addEventListener('click', () => { const v = $('#cv-input').value; if (words(v).length) { $('#cv-input').value = ''; cvAnswer(v, 0); } else toast('Type an answer first.'); });
+$('#cv-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#cv-send').click(); } });
+$('#cv-repeat').addEventListener('click', () => TTS.speak(Conv.last, 1));
+$('#cv-skip').addEventListener('click', () => { if (Capture.busy()) { toast('Stop the recording first.'); return; } $('#cv-help-box').hidden = true; cvNext('No problem, let\'s move on.'); });
+$('#cv-end').addEventListener('click', () => {
+  if (Conv.answers.length && !Conv.done) cvFinish('');
+  else { if (Capture.busy()) Capture.stop('navigate'); $('#cv-session').hidden = true; $('#cv-summary').hidden = true; $('#cv-picker').hidden = false; }
+});
+$('#cv-help').addEventListener('click', () => {
+  const q = cvQ();
+  const lines = Conv.followed
+    ? ['Add one more detail: “…because…”', 'Give an example: “For example, …”', 'Ask back: “What about you?”']
+    : q.help.concat(['Then add a reason or example to make it longer.']);
+  $('#cv-help-box').innerHTML = `<strong>Ways to start your answer:</strong><ul class="feedback-list" style="margin-top:6px">${lines.map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul><span class="small">Finish the sentence with your own ideas. Don't memorise it.</span>`;
+  $('#cv-help-box').hidden = false;
+});
+$('#cv-mic').addEventListener('click', () => {
+  const mic = $('#cv-mic'), status = $('#cv-status');
+  if (Capture.busy()) { Capture.stop('user'); status.textContent = 'Processing…'; return; }
+  $('#cv-live').innerHTML = '';
+  Capture.start({
+    record: false, maxSeconds: 90, autoStopSilence: 3,
+    onStart() { setMic(mic, true, 'Speak your answer'); status.classList.add('live'); status.textContent = 'Listening… It sends your answer when you pause for 3 seconds, or press to stop.'; },
+    onText(f, i) { renderLive($('#cv-live'), f, i); },
+    onWarn(msg) { status.textContent = msg; },
+    onError(msg) { setMic(mic, false, 'Speak your answer'); status.classList.remove('live'); status.textContent = msg; },
+    onEnd(res) {
+      setMic(mic, false, 'Speak your answer'); status.classList.remove('live');
+      if (res.reason === 'navigate') return;
+      if (!res.transcript) { status.textContent = endProblem(res); return; }
+      status.textContent = 'Press the microphone to answer the next question.';
+      $('#cv-live').innerHTML = '';
+      cvAnswer(res.transcript, res.seconds);
+    }
+  });
+});
+
+// =====================================================================
+// MODE D: SENTENCE COACH
+// =====================================================================
+let coachFromSpeech = false;
+$('#co-samples').innerHTML = DATA.coachSamples.map(s => `<button class="chip" data-sample="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('');
+$('#co-samples').addEventListener('click', e => { const b = e.target.closest('[data-sample]'); if (b) { $('#co-input').value = b.dataset.sample; coachFromSpeech = false; coCheck(); } });
+$('#co-input').addEventListener('input', () => { coachFromSpeech = false; });
+$('#co-clear').addEventListener('click', () => { $('#co-input').value = ''; $('#co-result').hidden = true; $('#co-input').focus(); });
+$('#co-check').addEventListener('click', coCheck);
+onShow.coach = () => {
+  $('#co-mic').disabled = !SUPPORT.sr;
+  if (!SUPPORT.sr) $('#co-status').textContent = 'Speech recognition is unavailable: please type.';
+  const v = Daily.active === 'vocab' ? dailyContent().vocab : null;
+  $('#co-input').placeholder = v ? `Make your own sentence using “${v[0].w}”, “${v[1].w}” or “${v[2].w}”…` : 'e.g. Yesterday I go to market and buyed vegetables.';
+};
+const EXTRA_EXAMPLES = [
+  'I really enjoy cooking, especially on weekends when I have more time.',
+  "I'm learning English because I want to feel confident in meetings.",
+  'Last month I started walking every morning, and now I feel much more energetic.',
+  "To be honest, I wasn't sure at first, but it turned out to be a great decision."
+];
+function coCheck() {
+  const text = $('#co-input').value.trim();
+  if (!words(text).length) { toast('Type or say a sentence first.'); $('#co-input').focus(); return; }
+  const r = improveText(text, { typed: !coachFromSpeech, fromSpeech: coachFromSpeech });
+  const groups = groupHits(r.hits);
+  const grammarGroups = groups.filter(g => g.kind === 'grammar');
+  const examples = groups.flatMap(g => g.examples).slice(0, 2);
+  const exampleNote = examples.length ? 'Using the same pattern:' : 'No changes were needed, so here are two example sentences that add detail (a reason, a time, or an example):';
+  const ex = examples.length === 2 ? examples : examples.concat(pick([EXTRA_EXAMPLES.slice(0, 2), EXTRA_EXAMPLES.slice(2)])).slice(0, 2);
+  const changed = r.improved !== formatSentence(r.original) || r.natural !== r.improved;
+  $('#co-result').innerHTML = `
+    <div class="row"><h2 style="margin:0">Your sentence, improved</h2><span class="spacer"></span><span class="badge-rule">Rule-based · not AI</span></div>
+    <div class="versions" style="margin-top:14px">
+      <div class="version"><div class="tag">Your original</div>${escapeHtml(r.original)}</div>
+      <div class="version improved"><div class="tag">Grammatically improved</div>${escapeHtml(r.improved)}</div>
+      <div class="version natural"><div class="tag">More natural, conversational</div>${escapeHtml(r.natural)}
+        ${SUPPORT.tts ? '<div style="margin-top:6px"><button class="btn small" data-act="say">Hear it</button></div>' : ''}</div>
+    </div>
+    <h3 style="margin-top:18px">What changed and why</h3>
+    ${groups.length ? groups.map(g => `<div class="change"><strong>${escapeHtml(g.title)}</strong>
+        <div style="margin:4px 0">${g.pairs.map(p => `<span class="before">${escapeHtml(p.before)}</span> → <span class="after">${escapeHtml(p.after)}</span>`).join('<br>')}</div>
+        <div class="small">${escapeHtml(g.why)}</div></div>`).join('')
+      : `<p>${changed ? 'Only capital letters and punctuation were adjusted.' : 'The checker didn\'t find any of the common patterns it looks for.'} That's a good sign, but it doesn't guarantee the sentence is perfect. The checker only knows about 50 common patterns and can't judge meaning.</p>`}
+    ${grammarGroups.length ? '<p class="small muted">Say the improved sentence aloud three times. Then make a new sentence of your own with the same pattern.</p>' : ''}
+    <h3 style="margin-top:18px">Two more examples</h3>
+    <p class="small muted">${exampleNote}</p>
+    <ul class="feedback-list">${ex.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>
+    ${aiBlock(aiPrompt('coach', { text }))}`;
+  $('#co-result').hidden = false;
+  $('#co-result').dataset.say = r.natural;
+  logExercise({ type: 'coach', label: text.length > 50 ? text.slice(0, 48) + '…' : text, words: words(text).length });
+  dailyHook('vocab', text);
+}
+$('#co-result').addEventListener('click', e => { if (e.target.closest('[data-act="say"]')) TTS.speak($('#co-result').dataset.say, 1); });
+$('#co-mic').addEventListener('click', () => {
+  const btn = $('#co-mic'), status = $('#co-status');
+  if (Capture.busy()) { Capture.stop('user'); status.textContent = 'Processing…'; return; }
+  Capture.start({
+    record: false, maxSeconds: 30, autoStopSilence: 2.5,
+    onStart() { btn.textContent = 'Stop'; btn.classList.add('danger'); status.textContent = 'Listening… say one or two sentences.'; },
+    onText(f, i) { $('#co-input').value = f.concat(i ? [i] : []).join(' '); },
+    onWarn(msg) { status.textContent = msg; },
+    onError(msg) { btn.textContent = 'Speak a sentence'; btn.classList.remove('danger'); status.textContent = msg; },
+    onEnd(res) {
+      btn.textContent = 'Speak a sentence'; btn.classList.remove('danger');
+      if (res.reason === 'navigate') return;
+      if (!res.transcript) { status.textContent = endProblem(res); return; }
+      status.textContent = 'Recognised. You can edit the text, then press “Improve my sentence” again.';
+      $('#co-input').value = res.transcript;
+      coachFromSpeech = true;
+      coCheck();
+    }
+  });
+});
+
+// =====================================================================
+// MODE E: DAILY FLUENCY CHALLENGE
+// =====================================================================
+const DAILY_STEPS = [
+  { id: 'warmup', title: 'Warm-up', mins: '2 min', desc: 'Speak for 2 minutes about something easy. Just get your voice going.', view: 'speak' },
+  { id: 'shadow', title: 'Shadowing', mins: '5 min', desc: 'Listen and repeat 5 sentences. Try hiding the text for the last two.', view: 'shadowing' },
+  { id: 'speak', title: 'Speak freely', mins: '5 min', desc: 'Speak about today\'s topic, then read your review.', view: 'speak' },
+  { id: 'vocab', title: 'Vocabulary & sentences', mins: '3 min', desc: 'Make your own sentences with today\'s 3 words in the Sentence Coach.', view: 'coach' },
+  { id: 'reflect', title: 'Reflection', mins: '2 min', desc: 'Write or say what you learned today.', view: 'daily' }
+];
+const Daily = { active: null };
+function dayNumber() { const d = new Date(); return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000); }
+function dailyContent() {
+  const n = dayNumber();
+  return {
+    topic: DATA.topics[n % DATA.topics.length],
+    warm: DATA.warmups[n % DATA.warmups.length],
+    vocab: DATA.vocab[n % DATA.vocab.length]
+  };
+}
+function todayDaily() {
+  const k = dateKey();
+  if (!state.daily[k]) {
+    state.daily[k] = { steps: {}, shadowCount: 0, coachCount: 0, coachUsed: [], reflection: '' };
+    const keys = Object.keys(state.daily).sort();
+    while (keys.length > 60) delete state.daily[keys.shift()]; // keep storage small
+  }
+  return state.daily[k];
+}
+function vocabRegex(phrase) {
+  return new RegExp('\\b' + phrase.split(' ').map((w, i) => {
+    if (i > 0) return escRe(w);
+    const past = V.baseToPast[w];
+    const stem = w.length > 4 ? w.replace(/e$/, '') : w;
+    return `(?:${escRe(stem)}\\w*${past ? '|' + past : ''})`;
+  }).join('\\s+') + '\\b', 'i');
+}
+/** Called by practice modes when something is completed, to advance the active daily step. */
+function dailyHook(kind, text) {
+  if (!Daily.active) return;
+  const d = todayDaily();
+  if (kind === 'warmup' && Daily.active === 'warmup') dailyComplete('warmup');
+  else if (kind === 'speak' && Daily.active === 'speak') dailyComplete('speak');
+  else if (kind === 'shadow' && Daily.active === 'shadow') { d.shadowCount++; save(); if (d.shadowCount >= 5) dailyComplete('shadow'); }
+  else if (kind === 'vocab' && Daily.active === 'vocab') {
+    d.coachCount++;
+    dailyContent().vocab.forEach(v => { if (vocabRegex(v.w).test(text || '') && !d.coachUsed.includes(v.w)) d.coachUsed.push(v.w); });
+    save();
+    if (d.coachUsed.length >= 3 || d.coachCount >= 3) dailyComplete('vocab');
+  }
+  renderDailyBanners();
+}
+function dailyComplete(id) {
+  const d = todayDaily();
+  if (d.steps[id]) { renderDailyBanners(); return; }
+  d.steps[id] = true;
+  const step = DAILY_STEPS.find(s => s.id === id);
+  logExercise({ type: 'daily', label: 'Step done: ' + step.title });
+  if (DAILY_STEPS.every(s => d.steps[s.id]) && !d.allDone) {
+    d.allDone = true; state.stats.dailiesDone++; save();
+    toast('Today\'s challenge is complete. Brilliant work!', 5000);
+  } else toast(`Daily step done: ${step.title}.`);
+  save();
+  renderDailyBanners();
+}
+function dailyStart(id) {
+  const c = dailyContent();
+  Daily.active = id;
+  if (id === 'warmup') { Speak.custom = { t: c.warm, ideas: ['What can you see, hear or feel right now?', 'What happened just before this?', 'How do you feel today, and why?', 'What are you going to do next?'] }; Speak.forceDuration = 120; }
+  if (id === 'speak') { Speak.custom = c.topic; Speak.forceDuration = state.stats.longestSeconds >= 170 ? 300 : 180; }
+  if (id === 'reflect') { $('#daily-reflection').focus(); $('#daily-reflection-card').scrollIntoView({ behavior: 'smooth' }); return; }
+  show(DAILY_STEPS.find(s => s.id === id).view);
+}
+function renderDailyBanners() {
+  const d = todayDaily();
+  $$('[data-daily-banner]').forEach(b => {
+    const view = b.closest('.view').id.replace('view-', '');
+    const step = DAILY_STEPS.find(s => s.id === Daily.active);
+    if (!step || step.view !== view) { b.hidden = true; return; }
+    let progress = '';
+    if (d.steps[step.id]) progress = '✓ Done! Go back to the plan for the next step.';
+    else if (step.id === 'shadow') progress = `${d.shadowCount} / 5 sentences`;
+    else if (step.id === 'vocab') progress = `Sentences checked: ${d.coachCount} / 3 · Words used: ${d.coachUsed.length ? d.coachUsed.join(', ') : 'none yet'} (${dailyContent().vocab.map(v => v.w).join(', ')})`;
+    else progress = step.desc;
+    b.innerHTML = `<span class="chip info">Daily step ${DAILY_STEPS.indexOf(step) + 1} of 5</span><strong>${escapeHtml(step.title)}</strong><span class="small">${escapeHtml(progress)}</span><span class="spacer"></span><button class="btn small" data-go="daily">Back to today's plan</button>`;
+    b.hidden = false;
+  });
+}
+onShow.daily = () => {
+  Daily.active = null;
+  const d = todayDaily(), c = dailyContent();
+  const done = DAILY_STEPS.filter(s => d.steps[s.id]).length;
+  $('#daily-date').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) + ' · about 15–20 minutes. Each step opens the right practice mode with today\'s content.';
+  $('#daily-count').textContent = `${done} / 5 done`;
+  $('#daily-bar').style.width = (done / 5 * 100) + '%';
+  const detail = {
+    warmup: `Topic: “${c.warm}”`,
+    shadow: `Level: ${({ beginner: 'Beginner', intermediate: 'Intermediate', upper: 'Upper-intermediate' })[state.prefs.level] || 'Beginner'} · ${Math.min(d.shadowCount, 5)} / 5 sentences`,
+    speak: `Topic: “${c.topic.t}” · ${state.stats.longestSeconds >= 170 ? '5' : '3'} minutes`,
+    vocab: `Words: ${c.vocab.map(v => v.w).join(', ')}`,
+    reflect: d.reflection ? 'Saved. You can edit it below.' : 'Below this list'
+  };
+  $('#daily-steps').innerHTML = DAILY_STEPS.map((s, i) => `<li class="step ${d.steps[s.id] ? 'done' : ''}">
+      <span class="num">${d.steps[s.id] ? '✓' : i + 1}</span>
+      <div class="body"><strong>${s.title}</strong> <span class="chip">${s.mins}</span><div class="small muted">${escapeHtml(s.desc)}</div><div class="small">${escapeHtml(detail[s.id])}</div></div>
+      <button class="btn ${d.steps[s.id] ? '' : 'primary'} small" data-step="${s.id}">${d.steps[s.id] ? 'Do again' : 'Start'}</button></li>`).join('');
+  $('#daily-vocab').innerHTML = c.vocab.map(v => `<div class="vocab"><strong>${escapeHtml(v.w)}</strong>
+      ${SUPPORT.tts ? `<button class="icon-btn btn small" style="min-height:30px;padding:2px 10px;margin-left:6px" data-say="${escapeHtml(v.w + '. ' + v.ex)}">Hear</button>` : ''}
+      <div class="small muted">${escapeHtml(v.m)}</div><div class="small" style="margin-top:4px"><em>${escapeHtml(v.ex)}</em></div>
+      ${d.coachUsed.includes(v.w) ? '<span class="chip ok" style="margin-top:6px">✓ used</span>' : ''}</div>`).join('');
+  $('#daily-reflect-prompts').innerHTML = DATA.reflectPrompts.map(p => `<li>${escapeHtml(p)}</li>`).join('');
+  if (document.activeElement !== $('#daily-reflection')) $('#daily-reflection').value = d.reflection || '';
+};
+$('#daily-steps').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) dailyStart(b.dataset.step); });
+$('#daily-vocab').addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) TTS.speak(b.dataset.say, 0.9); });
+$('#daily-save-reflection').addEventListener('click', () => {
+  const text = $('#daily-reflection').value.trim();
+  if (words(text).length < 3) { toast('Write at least one short sentence first.'); return; }
+  todayDaily().reflection = text; save();
+  dailyComplete('reflect');
+  $('#daily-reflect-status').textContent = 'Saved.';
+  onShow.daily();
+});
+$('#daily-reflect-mic').addEventListener('click', () => {
+  const btn = $('#daily-reflect-mic'), status = $('#daily-reflect-status');
+  if (!SUPPORT.sr) { status.textContent = 'Speech recognition is unavailable in this browser. Please type.'; return; }
+  if (Capture.busy()) { Capture.stop('user'); return; }
+  const before = $('#daily-reflection').value.trim();
+  Capture.start({
+    record: false, maxSeconds: 90, autoStopSilence: 4,
+    onStart() { btn.textContent = 'Stop'; status.textContent = 'Listening…'; },
+    onText(f, i) { $('#daily-reflection').value = (before ? before + ' ' : '') + f.concat(i ? [i] : []).join(' '); },
+    onWarn(msg) { status.textContent = msg; },
+    onError(msg) { btn.textContent = 'Speak my reflection'; status.textContent = msg; },
+    onEnd(res) {
+      btn.textContent = 'Speak my reflection';
+      if (res.reason === 'navigate') return;
+      if (!res.transcript) { status.textContent = endProblem(res); return; }
+      $('#daily-reflection').value = (before ? before + ' ' : '') + formatSentence(res.transcript);
+      status.textContent = 'Check the text, then press “Save reflection”.';
+    }
+  });
+});
+
+// Daily duration preset for Speak Freely (applied once when the step starts)
+const _spShow = onShow.speak;
+onShow.speak = () => {
+  _spShow();
+  if (Speak.forceDuration && !Capture.busy()) { $('#sp-duration').value = String(Speak.forceDuration); Speak.forceDuration = null; spResetTimer(); }
+};
+
+// =====================================================================
+// START-UP
+// =====================================================================
+TTS.init();
+window.addEventListener('online', () => { if (!$('#view-dashboard').hidden) renderCompat(); });
+window.addEventListener('offline', () => { if (!$('#view-dashboard').hidden) renderCompat(); });
+window.addEventListener('pagehide', () => { if (Capture.busy()) Capture.stop('navigate'); TTS.stop(); });
+show(location.hash.slice(1) || 'dashboard');
+</script>
+</body>
+</html>
